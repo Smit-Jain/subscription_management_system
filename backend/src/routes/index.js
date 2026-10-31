@@ -28,6 +28,7 @@ router.use('/catalog',   catalogRouter);
 
 // Billing (Member C)
 router.use('/billing',   billingRouter);
+router.use('/',          billingRouter); // Allows direct /taxes, /discounts, /invoices
 
 // Finance (Member D)
 router.use('/finance',   financeRouter);

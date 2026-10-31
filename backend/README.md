@@ -118,10 +118,34 @@ backend/
 │   ├── routes/index.js        # Route aggregator
 │   └── modules/
 │       ├── auth/              # Member A: auth, staff, customers
-│       ├── catalog/index.js   # Member B: placeholder
-│       ├── billing/index.js   # Member C: placeholder
-│       └── finance/index.js   # Member D: placeholder
+│       ├── catalog/           # Member B: products, plans, subscriptions
+│       ├── billing/           # Member C: taxes, discounts, invoices, recurring billing engine
+│       └── finance/           # Member D: payments, reports
 └── docs/                      # Team documentation
+
+## Member C: Billing Engine & Endpoints
+
+- **Taxes:** `GET|POST /api/billing/taxes`, `GET|PUT|DELETE /api/billing/taxes/:id`
+- **Discounts:** `GET|POST /api/billing/discounts`, `GET|PUT|DELETE /api/billing/discounts/:id`
+- **Invoices:**
+  - `GET /api/billing/invoices` (filtered, customer-scoped)
+  - `GET /api/billing/invoices/:id`
+  - `POST /api/billing/invoices/generate` (recurring billing run)
+  - `POST /api/billing/invoices` (single manual generation)
+  - `PUT|POST /api/billing/invoices/:id/confirm`
+  - `PUT|POST /api/billing/invoices/:id/cancel`
+  - `POST /api/billing/invoices/:id/send` (branded email notification)
+  - `GET /api/billing/invoices/:id/pdf` (print-ready HTML/PDF format)
+
+## Running Tests
+
+```bash
+# Core engine tests (25 tests covering idempotency, date math, leap years, catch-up recovery)
+node tests/billing.test.js
+
+# API integration tests (15 tests covering RBAC, auth, customer scoping, PDF, email)
+node tests/api.integration.test.js
+```
 ```
 
 ## Troubleshooting

@@ -26,7 +26,16 @@ export default function TaxesPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    // TODO(C): Validate percentage is 0–100
+    if (!editItem.name?.trim()) {
+      toast.error('Tax name is required.');
+      return;
+    }
+    const pct = parseFloat(editItem.percentage);
+    if (isNaN(pct) || pct < 0 || pct > 100) {
+      toast.error('Tax percentage must be between 0% and 100%.');
+      return;
+    }
+
     setLoading(true);
     try {
       const saved = await saveTax(editItem);
@@ -36,6 +45,8 @@ export default function TaxesPage() {
       });
       toast.success(editItem.id ? 'Tax updated.' : 'Tax created.');
       setEditItem(null);
+    } catch (err) {
+      toast.error(err.message || 'Failed to save tax.');
     } finally {
       setLoading(false);
     }

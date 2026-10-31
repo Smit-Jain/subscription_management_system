@@ -5,7 +5,7 @@ import { StatusStepper } from '../../../components/ui/StatusStepper';
 import { Button } from '../../../components/ui/Button';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
-import { getInvoice, confirmInvoice, cancelInvoice } from '../services/billing.service';
+import { getInvoice, confirmInvoice, cancelInvoice, sendInvoice } from '../services/billing.service';
 import { formatDate, formatCurrency } from '../../../utils/index';
 import { useToast } from '../../../context/ToastContext';
 
@@ -22,9 +22,9 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState(null);
   const [action, setAction] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    // TODO(C): Replace with real API
     getInvoice(id).then(setInvoice);
   }, [id]);
 
@@ -40,6 +40,8 @@ export default function InvoiceDetailPage() {
       await confirmInvoice(id);
       setInvoice((i) => ({ ...i, status: 'confirmed' }));
       toast.success('Invoice confirmed.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to confirm invoice.');
     } finally {
       setLoading(false); setAction(null);
     }
@@ -51,8 +53,22 @@ export default function InvoiceDetailPage() {
       await cancelInvoice(id);
       setInvoice((i) => ({ ...i, status: 'cancelled' }));
       toast.success('Invoice cancelled.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to cancel invoice.');
     } finally {
       setLoading(false); setAction(null);
+    }
+  };
+
+  const doSend = async () => {
+    setSending(true);
+    try {
+      await sendInvoice(id);
+      toast.success('Invoice sent via email!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to send invoice email.');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -77,7 +93,7 @@ export default function InvoiceDetailPage() {
           {['draft', 'confirmed'].includes(invoice.status) && (
             <Button variant="danger" icon={CancelIcon} onClick={() => setAction('cancel')}>Cancel</Button>
           )}
-          <Button variant="ghost" icon={Send} onClick={() => toast.info('Invoice sent via email!')}>Send</Button>
+          <Button variant="ghost" icon={Send} loading={sending} onClick={doSend}>Send</Button>
           <Button variant="ghost" icon={Printer} onClick={() => window.print()}>Print</Button>
         </div>
       </div>
