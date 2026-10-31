@@ -1,10 +1,10 @@
 // ─── Auth Routes ─────────────────────────────────────────────────────────────
 import { Router } from 'express';
-import asyncHandler from '../../../utils/asyncHandler.js';
-import validate from '../../../middleware/validate.js';
-import authenticate from '../../../middleware/authenticate.js';
-import requireRole from '../../../middleware/requireRole.js';
-import { loginLimiter, forgotPasswordLimiter, signupLimiter } from '../../../middleware/rateLimiters.js';
+import asyncHandler from '../../utils/asyncHandler.js';
+import validate from '../../middleware/validate.js';
+import authenticate from '../../middleware/authenticate.js';
+import requireRole from '../../middleware/requireRole.js';
+import { loginLimiter, forgotPasswordLimiter, signupLimiter } from '../../middleware/rateLimiters.js';
 import * as ctrl from './controller.js';
 import {
   signupSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema,
