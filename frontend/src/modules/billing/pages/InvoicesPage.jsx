@@ -26,14 +26,42 @@ export default function InvoicesPage() {
   }, []);
 
   const handleGenerate = async () => {
-    // TODO(C): Call real invoice generation endpoint
     setGenerating(true);
     try {
       const result = await generateInvoices();
-      toast.success(`Generated ${result.generated} new invoices.`);
+      toast.success(`Generated ${result.generated || 0} new invoice(s).`);
+      const updated = await getInvoices();
+      setInvoices(updated);
+    } catch (err) {
+      toast.error(err.message || 'Invoice generation failed.');
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleExportCsv = () => {
+    if (!filtered.length) {
+      toast.info('No invoices to export.');
+      return;
+    }
+    const headers = ['Invoice Number', 'Customer', 'Issue Date', 'Due Date', 'Status', 'Total'];
+    const rows = filtered.map((i) => [
+      i.number,
+      `"${i.customerName || ''}"`,
+      i.issueDate,
+      i.dueDate,
+      i.status,
+      i.total,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `invoices_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Invoices exported to CSV.');
   };
 
   const filtered = invoices.filter((inv) => {
@@ -69,7 +97,7 @@ export default function InvoicesPage() {
         subtitle={`${filtered.length} invoices`}
         actions={
           <>
-            <Button variant="ghost" icon={Download} onClick={() => toast.info('Export started…')}>Export CSV</Button>
+            <Button variant="ghost" icon={Download} onClick={handleExportCsv}>Export CSV</Button>
             <Button variant="accent" icon={Zap} loading={generating} onClick={handleGenerate}>
               Generate Invoices Now
             </Button>

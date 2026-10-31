@@ -6,7 +6,7 @@ import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { Input, Select } from '../../../components/ui/FormFields';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
-import { getDiscounts, saveDiscount } from '../services/billing.service';
+import { getDiscounts, saveDiscount, deleteDiscount } from '../services/billing.service';
 import { useToast } from '../../../context/ToastContext';
 import { formatCurrency, formatDate } from '../../../utils/index';
 
@@ -20,13 +20,29 @@ export default function DiscountsPage() {
   const toast = useToast();
 
   useEffect(() => {
-    // TODO(C): Replace with real API
     getDiscounts().then(setDiscounts);
   }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
-    // TODO(C): Validate dates and value constraints
+    if (!editItem.name?.trim()) {
+      toast.error('Discount name is required.');
+      return;
+    }
+    const val = parseFloat(editItem.value);
+    if (isNaN(val) || val <= 0) {
+      toast.error('Discount value must be greater than 0.');
+      return;
+    }
+    if (editItem.type === 'percentage' && val > 100) {
+      toast.error('Percentage discount cannot exceed 100%.');
+      return;
+    }
+    if (editItem.startDate && editItem.endDate && editItem.endDate < editItem.startDate) {
+      toast.error('End date must be on or after start date.');
+      return;
+    }
+
     setLoading(true);
     try {
       const saved = await saveDiscount(editItem);
@@ -36,8 +52,22 @@ export default function DiscountsPage() {
       });
       toast.success(editItem.id ? 'Discount updated.' : 'Discount created.');
       setEditItem(null);
+    } catch (err) {
+      toast.error(err.message || 'Failed to save discount.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteDiscount(deleteId);
+      setDiscounts((p) => p.filter((d) => d.id !== deleteId));
+      toast.success('Discount deleted.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete discount.');
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -116,7 +146,7 @@ export default function DiscountsPage() {
       </Modal>
 
       <ConfirmDialog
-        open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={() => { setDiscounts((p) => p.filter((d) => d.id !== deleteId)); setDeleteId(null); toast.success('Discount deleted.'); }}
+        open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete}
         title="Delete Discount" message="Are you sure you want to delete this discount campaign?"
       />
     </div>
