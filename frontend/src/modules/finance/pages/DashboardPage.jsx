@@ -11,20 +11,11 @@ import { FilterBar } from '../../../components/ui/FilterBar';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { Avatar } from '../../../components/ui/Avatar';
 import { getDashboardStats, getRevenueChartData, exportCsv } from '../services/finance.service';
-import { mockInvoices, mockPayments } from '../../../mock/billing';
 import { formatCurrency, formatDate } from '../../../utils/index';
 import { useToast } from '../../../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 
 const PIE_COLORS = ['#3FBF8F', '#F6B73C', '#FF6A4D', '#DCD3F7', '#7CC4F0', '#6B667A'];
-
-const DEFAULT_INVOICE_STATUS_DATA = [
-  { name: 'Paid',      value: 11 },
-  { name: 'Pending',   value: 3 },
-  { name: 'Overdue',   value: 4 },
-  { name: 'Draft',     value: 1 },
-  { name: 'Confirmed', value: 1 },
-];
 
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
@@ -40,17 +31,9 @@ export default function DashboardPage() {
 
   const handleFilterChange = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
-  const overdueInvoices = stats?.overdueInvoices?.length
-    ? stats.overdueInvoices
-    : mockInvoices.filter((i) => i.status === 'overdue').slice(0, 5);
-
-  const recentPayments = stats?.recentPayments?.length
-    ? stats.recentPayments
-    : mockPayments.slice(0, 5);
-
-  const invoiceStatusData = stats?.invoiceStatusData?.length
-    ? stats.invoiceStatusData
-    : DEFAULT_INVOICE_STATUS_DATA;
+  const overdueInvoices = stats?.overdueInvoices || [];
+  const recentPayments  = stats?.recentPayments || [];
+  const invoiceStatusData = stats?.invoiceStatusData?.filter((d) => d.value > 0) || [];
 
   const handleExport = () => {
     toast.info('Export started…');
@@ -87,9 +70,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Active Subscriptions"
-          value={stats?.activeSubscriptions ?? '—'}
-          subtitle="vs last month"
-          trend={12}
+          value={stats?.activeSubscriptions ?? 0}
+          subtitle="Total active subscriptions"
           icon={RefreshCw}
           bg="bg-forest-light"
           iconBg="bg-forest/10"
@@ -97,9 +79,8 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Revenue Collected"
-          value={stats ? formatCurrency(stats.revenueCollected, { compact: true }) : '—'}
-          subtitle="YTD"
-          trend={8}
+          value={stats ? formatCurrency(stats.revenueCollected, { compact: true }) : '₹0'}
+          subtitle="Total payments received"
           icon={DollarSign}
           bg="bg-lilac/30"
           iconBg="bg-violet-100"
@@ -107,9 +88,8 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Amount Owed"
-          value={stats ? formatCurrency(stats.amountOwed, { compact: true }) : '—'}
+          value={stats ? formatCurrency(stats.amountOwed, { compact: true }) : '₹0'}
           subtitle="Outstanding invoices"
-          trend={-3}
           icon={TrendingUp}
           bg="bg-marigold/10"
           iconBg="bg-marigold/20"
@@ -117,9 +97,8 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Overdue Invoices"
-          value={stats?.overdueCount ?? '—'}
+          value={stats?.overdueCount ?? 0}
           subtitle="Require follow-up"
-          trend={-1}
           icon={AlertCircle}
           bg="bg-coral/10"
           iconBg="bg-coral/10"
@@ -169,20 +148,26 @@ export default function DashboardPage() {
         {/* Invoice status donut */}
         <div className="bg-paper rounded-2xl border border-border p-5">
           <h3 className="font-heading font-semibold text-ink mb-4">Invoice Status</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={invoiceStatusData} dataKey="value" nameKey="name"
-                cx="50%" cy="50%" innerRadius={52} outerRadius={80} paddingAngle={3}
-              >
-                {invoiceStatusData.map((_, i) => (
-                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                ))}
-              </Pie>
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ background: '#FFFDF8', border: '1px solid #EADFCB', borderRadius: 12, fontSize: 12 }} />
-            </PieChart>
-          </ResponsiveContainer>
+          {invoiceStatusData.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-ink-soft text-sm">
+              No invoice data yet
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={invoiceStatusData} dataKey="value" nameKey="name"
+                  cx="50%" cy="50%" innerRadius={52} outerRadius={80} paddingAngle={3}
+                >
+                  {invoiceStatusData.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: '#FFFDF8', border: '1px solid #EADFCB', borderRadius: 12, fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -194,23 +179,27 @@ export default function DashboardPage() {
             <h3 className="font-heading font-semibold text-ink">Recent Payments</h3>
             <Button variant="ghost" size="sm" icon={Zap} onClick={() => navigate('/admin/payments')}>View all</Button>
           </div>
-          <div className="divide-y divide-border">
-            {recentPayments.map((p) => (
-              <div key={p.id} className="flex items-center justify-between px-5 py-3">
-                <div className="flex items-center gap-3">
-                  <Avatar name={p.customerName} size="sm" />
-                  <div>
-                    <p className="text-sm font-medium text-ink">{p.customerName}</p>
-                    <p className="text-xs text-ink-soft">{p.invoiceNumber} · {formatDate(p.date)}</p>
+          {recentPayments.length === 0 ? (
+            <div className="p-8 text-center text-sm text-ink-soft">No payments recorded yet.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {recentPayments.map((p) => (
+                <div key={p.id} className="flex items-center justify-between px-5 py-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={p.customerName} size="sm" />
+                    <div>
+                      <p className="text-sm font-medium text-ink">{p.customerName}</p>
+                      <p className="text-xs text-ink-soft">{p.invoiceNumber} · {formatDate(p.date)}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-forest">{formatCurrency(p.amount)}</p>
+                    <p className="text-xs text-ink-soft">{p.method}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-forest">{formatCurrency(p.amount)}</p>
-                  <p className="text-xs text-ink-soft">{p.method}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Overdue invoices */}
@@ -219,20 +208,24 @@ export default function DashboardPage() {
             <h3 className="font-heading font-semibold text-ink">Overdue Invoices</h3>
             <Button variant="ghost" size="sm" onClick={() => navigate('/admin/overdue')}>View all</Button>
           </div>
-          <div className="divide-y divide-border">
-            {overdueInvoices.map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <p className="text-sm font-medium text-ink">{inv.customerName}</p>
-                  <p className="text-xs text-ink-soft">{inv.number} · Due {formatDate(inv.dueDate)}</p>
+          {overdueInvoices.length === 0 ? (
+            <div className="p-8 text-center text-sm text-ink-soft">No overdue invoices. All accounts are up to date!</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {overdueInvoices.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between px-5 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-ink">{inv.customerName}</p>
+                    <p className="text-xs text-ink-soft">{inv.number} · Due {formatDate(inv.dueDate)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-coral">{formatCurrency(inv.total)}</p>
+                    <StatusBadge status="overdue" />
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-coral">{formatCurrency(inv.total)}</p>
-                  <StatusBadge status="overdue" />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

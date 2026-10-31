@@ -6,8 +6,6 @@ import { StatusBadge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { getCustomerSubscription, getCustomerSubscriptions, performSubscriptionAction } from '../../services/finance.service';
-import { mockCurrentCustomer } from '../../../../mock/users';
-import { mockPlans } from '../../../../mock/products';
 import { formatDate, formatCurrency } from '../../../../utils/index';
 import { useToast } from '../../../../context/ToastContext';
 import { useAuth } from '../../../../context/RoleContext';
@@ -25,7 +23,6 @@ export default function CustomerSubDetailPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
-  const customer = user || mockCurrentCustomer;
 
   const [sub, setSub] = useState(null);
   const [action, setAction] = useState(null);
@@ -34,17 +31,17 @@ export default function CustomerSubDetailPage() {
     getCustomerSubscription(id).then((found) => {
       if (found) {
         setSub(found);
-      } else {
-        getCustomerSubscriptions(customer.id).then((list) => {
+      } else if (user?.id) {
+        getCustomerSubscriptions(user.id).then((list) => {
           setSub(list.find((s) => s.id === id) || null);
         });
       }
     });
-  }, [id, customer.id]);
+  }, [id, user?.id]);
 
   if (!sub) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-6 h-6 border-2 border-forest border-t-transparent rounded-full" /></div>;
 
-  const plan = sub.planConfig || mockPlans.find((p) => p.name === sub.plan) || {};
+  const plan = sub.planConfig || { renewable: true, pausable: true, closableEarly: true };
   const isActive = sub.status === 'active';
   const isPaused = sub.status === 'paused';
 
@@ -52,11 +49,11 @@ export default function CustomerSubDetailPage() {
     const statusMap = { Pause: 'paused', Resume: 'active', Renew: 'active', Close: 'closed' };
     try {
       await performSubscriptionAction(sub.id, type);
-    } catch {
-      // Local fallback for demo
+      setSub((s) => ({ ...s, status: statusMap[type] }));
+      toast.success(`Subscription ${type.toLowerCase()}d successfully.`);
+    } catch (err) {
+      toast.error(err.message || `Failed to ${type.toLowerCase()} subscription.`);
     }
-    setSub((s) => ({ ...s, status: statusMap[type] }));
-    toast.success(`Subscription ${type.toLowerCase()}d.`);
     setAction(null);
   };
 
@@ -92,7 +89,7 @@ export default function CustomerSubDetailPage() {
           { label: 'Expiry Date',   value: formatDate(sub.expiryDate) },
           { label: 'Payment Terms', value: sub.paymentTerms },
           { label: 'Total Value',   value: <span className="text-forest font-bold">{formatCurrency(sub.total)}</span> },
-          { label: 'Template',      value: sub.templateId || 'Custom' },
+          { label: 'Template',      value: sub.templateId || 'Standard' },
           { label: 'Plan',          value: sub.plan },
         ].map(({ label, value }) => (
           <div key={label} className="bg-paper rounded-xl border border-border p-4">

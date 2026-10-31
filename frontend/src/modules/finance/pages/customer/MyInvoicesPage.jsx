@@ -6,21 +6,31 @@ import { DataTable } from '../../../../components/ui/DataTable';
 import { StatusBadge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { getCustomerInvoices } from '../../services/finance.service';
-import { mockCurrentCustomer } from '../../../../mock/users';
 import { formatDate, formatCurrency } from '../../../../utils/index';
 import { useToast } from '../../../../context/ToastContext';
 import { useAuth } from '../../../../context/RoleContext';
+
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 export default function MyInvoicesPage() {
   const [invoices, setInvoices] = useState([]);
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
-  const customer = user || mockCurrentCustomer;
 
   useEffect(() => {
-    getCustomerInvoices(customer.id).then(setInvoices);
-  }, [customer.id]);
+    if (user?.id) {
+      getCustomerInvoices(user.id).then(setInvoices);
+    } else {
+      getCustomerInvoices().then(setInvoices);
+    }
+  }, [user?.id]);
+
+  const handleDownload = (invoiceId) => {
+    toast.success('Opening invoice PDF…');
+    const token = localStorage.getItem('brightloop_token') || '';
+    window.open(`${BASE}/billing/invoices/${invoiceId}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`, '_blank');
+  };
 
   const columns = [
     { key: 'number',    label: 'Invoice #', render: (v) => <span className="font-mono text-xs font-semibold">{v}</span> },
@@ -31,7 +41,15 @@ export default function MyInvoicesPage() {
     {
       key: 'id', label: '',
       render: (v) => (
-        <Button size="sm" variant="ghost" icon={Download} onClick={(e) => { e.stopPropagation(); toast.success('Invoice PDF downloading…'); }}>
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={Download}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownload(v);
+          }}
+        >
           Download
         </Button>
       ),

@@ -13,7 +13,86 @@ export default async function seedFinance(prisma) {
     return;
   }
 
-  // Get existing subscriptions
+  // Admin user for recordedById
+  const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+
+  // Check if invoices already exist (e.g., from Member C or prior run)
+  const existingInvoices = await prisma.invoice.findMany({
+    include: {
+      customer: true,
+      subscription: true,
+      payments: true,
+    },
+  });
+
+  const methods = ['BANK_TRANSFER', 'UPI', 'CARD', 'CHEQUE', 'CASH'];
+
+  if (existingInvoices.length > 0) {
+    console.log(`    Found ${existingInvoices.length} existing invoices. Seeding payments…`);
+    let payIndex = 0;
+
+    for (let i = 0; i < existingInvoices.length; i++) {
+      const inv = existingInvoices[i];
+      if (inv.payments && inv.payments.length > 0) continue;
+
+      // Seed payments for some invoices to create a realistic mix of Paid, Partial, and Overdue
+      if (i % 3 === 0) {
+        // Full payment
+        payIndex++;
+        const method = methods[payIndex % methods.length];
+        const payAmount = round2(inv.total);
+        const paidAt = new Date(inv.issueDate.getTime() + 5 * 24 * 60 * 60 * 1000);
+
+        await prisma.payment.create({
+          data: {
+            invoiceId:    inv.id,
+            amount:       payAmount,
+            method,
+            paidAt,
+            note:         `Payment via ${method.replace('_', ' ')}`,
+            recordedById: admin?.id || null,
+          },
+        });
+
+        await prisma.invoice.update({
+          where: { id: inv.id },
+          data:  { amountPaid: payAmount, status: 'PAID' },
+        });
+
+        console.log(`    ✅ Payment: ₹${payAmount} for ${inv.number} (Full / PAID)`);
+      } else if (i % 3 === 1) {
+        // Partial payment
+        payIndex++;
+        const method = methods[payIndex % methods.length];
+        const payAmount = round2(Number(inv.total) / 2);
+        const paidAt = new Date(inv.issueDate.getTime() + 8 * 24 * 60 * 60 * 1000);
+
+        await prisma.payment.create({
+          data: {
+            invoiceId:    inv.id,
+            amount:       payAmount,
+            method,
+            paidAt,
+            note:         `Partial payment via ${method.replace('_', ' ')}`,
+            recordedById: admin?.id || null,
+          },
+        });
+
+        await prisma.invoice.update({
+          where: { id: inv.id },
+          data:  { amountPaid: payAmount, status: 'CONFIRMED' },
+        });
+
+        console.log(`    ✅ Payment: ₹${payAmount} for ${inv.number} (Partial / CONFIRMED)`);
+      }
+      // i % 3 === 2 remains unpaid (can be overdue or pending)
+    }
+
+    console.log('  ✅ Finance seed complete');
+    return;
+  }
+
+  // If no invoices exist yet, generate starter invoices & payments from subscriptions
   const subscriptions = await prisma.subscription.findMany({
     include: {
       customer: true,
@@ -28,9 +107,6 @@ export default async function seedFinance(prisma) {
     return;
   }
 
-  // Admin user for recordedById
-  const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
-
   let invSeq = 0;
   const createdInvoices = [];
 
@@ -39,7 +115,6 @@ export default async function seedFinance(prisma) {
     invSeq++;
     const number = `INV-2024-${String(invSeq).padStart(4, '0')}`;
 
-    // Calculate line amounts
     let subtotal = 0;
     const lines = sub.lines.map((sl) => {
       const lineSubtotal = Number(sl.quantity) * Number(sl.unitPrice);
@@ -59,26 +134,22 @@ export default async function seedFinance(prisma) {
     const taxTotal = round2(subtotal * 0.18);
     const total = round2(subtotal + taxTotal);
 
-    // Determine status & dates based on index
     let status = 'PAID';
     let amountPaid = total;
     let issueDate = new Date('2024-01-15');
     let dueDate   = new Date('2024-02-14');
 
     if (i === 2 || i === 7) {
-      // Overdue invoice (past due date, unpaid)
       status = 'CONFIRMED';
       amountPaid = 0;
       issueDate = new Date('2024-04-10');
       dueDate   = new Date('2024-05-10');
     } else if (i === 3) {
-      // Pending invoice (future due date)
       status = 'CONFIRMED';
       amountPaid = 0;
       issueDate = new Date();
       dueDate   = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     } else if (i === 4) {
-      // Partial payment
       status = 'CONFIRMED';
       amountPaid = round2(total / 2);
       issueDate = new Date('2024-06-15');
@@ -108,17 +179,13 @@ export default async function seedFinance(prisma) {
     console.log(`    ✅ Invoice: ${number} (${sub.customer.name} / ₹${total}) [${status}]`);
   }
 
-  // Update counter for invoice sequence
   await prisma.counter.upsert({
     where:  { key: 'INV' },
     create: { key: 'INV', value: invSeq },
     update: { value: invSeq },
   });
 
-  // Seed payments for paid and partial invoices
-  const methods = ['BANK_TRANSFER', 'UPI', 'CARD', 'CHEQUE', 'CASH'];
   let payIndex = 0;
-
   for (const item of createdInvoices) {
     if (item.amountPaid > 0) {
       payIndex++;

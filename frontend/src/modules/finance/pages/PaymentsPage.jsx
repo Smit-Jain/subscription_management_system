@@ -9,7 +9,6 @@ import { StatusBadge } from '../../../components/ui/Badge';
 import { Avatar } from '../../../components/ui/Avatar';
 import { StatCard } from '../../../components/ui/StatCard';
 import { getPayments, recordPayment, getInvoicesForPayment } from '../services/finance.service';
-import { mockInvoices } from '../../../mock/billing';
 import { formatDate, formatCurrency } from '../../../utils/index';
 import { useToast } from '../../../context/ToastContext';
 
@@ -27,7 +26,7 @@ export default function PaymentsPage() {
   const loadData = () => {
     getPayments().then(setPayments);
     getInvoicesForPayment().then((list) => {
-      setInvoices(list?.length ? list : mockInvoices);
+      setInvoices(Array.isArray(list) ? list : []);
     });
   };
 
@@ -37,7 +36,6 @@ export default function PaymentsPage() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  // Find currently selected invoice for remaining balance validation
   const selectedInvoice = invoices.find((i) => i.id === form.invoiceId);
   const remainingDue = selectedInvoice
     ? (selectedInvoice.remainingBalance !== undefined ? selectedInvoice.remainingBalance : (selectedInvoice.total - (selectedInvoice.amountPaid || 0)))
@@ -155,14 +153,18 @@ export default function PaymentsPage() {
               required
             >
               <option value="">— Select invoice —</option>
-              {payableInvoices.map((i) => {
-                const bal = i.remainingBalance !== undefined ? i.remainingBalance : (i.total - (i.amountPaid || 0));
-                return (
-                  <option key={i.id} value={i.id}>
-                    {i.number} — {i.customerName} ({formatCurrency(i.total)} · Bal: {formatCurrency(bal)})
-                  </option>
-                );
-              })}
+              {payableInvoices.length === 0 ? (
+                <option value="" disabled>No outstanding invoices found</option>
+              ) : (
+                payableInvoices.map((i) => {
+                  const bal = i.remainingBalance !== undefined ? i.remainingBalance : (i.total - (i.amountPaid || 0));
+                  return (
+                    <option key={i.id} value={i.id}>
+                      {i.number} — {i.customerName} ({formatCurrency(i.total)} · Bal: {formatCurrency(bal)})
+                    </option>
+                  );
+                })
+              )}
             </select>
             {selectedInvoice && (
               <p className="text-xs text-ink-soft">

@@ -11,13 +11,6 @@ import { getRevenueChartData, getReportsData, exportCsv } from '../services/fina
 import { formatCurrency } from '../../../utils/index';
 import { useToast } from '../../../context/ToastContext';
 
-const DEFAULT_PLAN_DATA = [
-  { plan: 'Starter',    count: 7,  revenue: 82600 },
-  { plan: 'Growth',     count: 9,  revenue: 428400 },
-  { plan: 'Enterprise', count: 6,  revenue: 538200 },
-  { plan: 'Annual',     count: 2,  revenue: 348000 },
-];
-
 export default function ReportsPage() {
   const [chartData, setChartData] = useState([]);
   const [reportData, setReportData] = useState(null);
@@ -33,12 +26,12 @@ export default function ReportsPage() {
     exportCsv();
   };
 
-  const planData = reportData?.planData?.length ? reportData.planData : DEFAULT_PLAN_DATA;
+  const planData = reportData?.planData || [];
   const summary = reportData?.summary || {
-    totalRevenue:    '₹14.0L',
-    totalInvoiced:   '₹15.6L',
-    avgInvoiceValue: '₹52,340',
-    collectionRate:  '87%',
+    totalRevenue:    '₹0',
+    totalInvoiced:   '₹0',
+    avgInvoiceValue: '₹0',
+    collectionRate:  '0%',
   };
 
   return (
@@ -55,10 +48,10 @@ export default function ReportsPage() {
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Revenue" value={summary.totalRevenue} subtitle="FY 2024–25" icon={BarChart3} bg="bg-forest-light" iconBg="bg-forest/10" iconColor="text-forest" trend={18} />
-        <StatCard title="Total Invoiced" value={summary.totalInvoiced} subtitle="FY 2024–25" icon={BarChart3} bg="bg-lilac/30" iconBg="bg-violet-100" iconColor="text-violet-600" trend={15} />
-        <StatCard title="Avg Invoice Value" value={summary.avgInvoiceValue} subtitle="per invoice" icon={BarChart3} bg="bg-marigold/10" iconBg="bg-marigold/20" iconColor="text-amber-700" trend={5} />
-        <StatCard title="Collection Rate" value={summary.collectionRate} subtitle="vs target 90%" icon={BarChart3} bg="bg-sky/10" iconBg="bg-sky/20" iconColor="text-sky" trend={-3} />
+        <StatCard title="Total Revenue" value={summary.totalRevenue} subtitle="All time collected" icon={BarChart3} bg="bg-forest-light" iconBg="bg-forest/10" iconColor="text-forest" />
+        <StatCard title="Total Invoiced" value={summary.totalInvoiced} subtitle="All time billed" icon={BarChart3} bg="bg-lilac/30" iconBg="bg-violet-100" iconColor="text-violet-600" />
+        <StatCard title="Avg Invoice Value" value={summary.avgInvoiceValue} subtitle="per invoice" icon={BarChart3} bg="bg-marigold/10" iconBg="bg-marigold/20" iconColor="text-amber-700" />
+        <StatCard title="Collection Rate" value={summary.collectionRate} subtitle="revenue vs invoiced" icon={BarChart3} bg="bg-sky/10" iconBg="bg-sky/20" iconColor="text-sky" />
       </div>
 
       {/* Revenue chart */}
@@ -81,37 +74,45 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="bg-paper rounded-2xl border border-border p-5">
           <h3 className="font-heading font-semibold text-ink mb-4">Revenue by Plan</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={planData} barSize={36}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#EADFCB" vertical={false} />
-              <XAxis dataKey="plan" tick={{ fontSize: 11, fill: '#6B667A' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#6B667A' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}K`} />
-              <Tooltip contentStyle={{ background: '#FFFDF8', border: '1px solid #EADFCB', borderRadius: 12, fontSize: 12 }} formatter={(v) => formatCurrency(v)} />
-              <Bar dataKey="revenue" name="Revenue" fill="#0E5A55" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {planData.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-sm text-ink-soft">No plan revenue data yet.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={planData} barSize={36}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EADFCB" vertical={false} />
+                <XAxis dataKey="plan" tick={{ fontSize: 11, fill: '#6B667A' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#6B667A' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}K`} />
+                <Tooltip contentStyle={{ background: '#FFFDF8', border: '1px solid #EADFCB', borderRadius: 12, fontSize: 12 }} formatter={(v) => formatCurrency(v)} />
+                <Bar dataKey="revenue" name="Revenue" fill="#0E5A55" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         <div className="bg-paper rounded-2xl border border-border p-5">
           <h3 className="font-heading font-semibold text-ink mb-4">Subscriptions by Plan</h3>
-          <div className="space-y-3 mt-2">
-            {planData.map((row) => {
-              const max = Math.max(...planData.map((r) => r.count || 1));
-              const pct = Math.round(((row.count || 1) / max) * 100);
-              const colors = { Starter: 'bg-sky', Growth: 'bg-forest', Enterprise: 'bg-lilac', Annual: 'bg-marigold' };
-              return (
-                <div key={row.plan}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium text-ink">{row.plan}</span>
-                    <span className="text-ink-soft">{row.count} subs · {formatCurrency(row.revenue)}</span>
+          {planData.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-sm text-ink-soft">No active subscriptions data yet.</div>
+          ) : (
+            <div className="space-y-3 mt-2">
+              {planData.map((row) => {
+                const max = Math.max(...planData.map((r) => r.count || 1));
+                const pct = Math.round(((row.count || 1) / max) * 100);
+                const colors = { Starter: 'bg-sky', Growth: 'bg-forest', Enterprise: 'bg-lilac', Annual: 'bg-marigold' };
+                return (
+                  <div key={row.plan}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium text-ink">{row.plan}</span>
+                      <span className="text-ink-soft">{row.count} subs · {formatCurrency(row.revenue)}</span>
+                    </div>
+                    <div className="w-full bg-border/50 rounded-full h-2">
+                      <div className={`${colors[row.plan] || 'bg-forest'} h-2 rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                    </div>
                   </div>
-                  <div className="w-full bg-border/50 rounded-full h-2">
-                    <div className={`${colors[row.plan] || 'bg-forest'} h-2 rounded-full transition-all`} style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,12 +1,7 @@
 // ============================================================
 // Finance Services — Member D
 // Real REST API calls backed by PostgreSQL & Express backend.
-// Function names and signatures are PRESERVED so UI keeps working.
-// Base URL: VITE_API_URL (set in frontend/.env → http://localhost:5001/api)
 // ============================================================
-import { mockInvoices, mockPayments } from '../../../mock/billing';
-import { mockSubscriptions } from '../../../mock/subscriptions';
-
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 /**
@@ -43,54 +38,38 @@ async function api(path, options = {}) {
 // PAYMENTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Get all recorded payments.
- */
 export async function getPayments(params = {}) {
   try {
     const qs = new URLSearchParams(params).toString();
     const data = await api(`/finance/payments${qs ? `?${qs}` : ''}`);
-    return Array.isArray(data) ? data : (data.items || mockPayments);
+    return Array.isArray(data) ? data : (data.items || []);
   } catch (err) {
-    console.warn('Backend /finance/payments offline, using mock fallback:', err.message);
-    return mockPayments;
+    console.error('getPayments error:', err.message);
+    return [];
   }
 }
 
-/**
- * Record a payment against an invoice.
- * @param {object} data — { invoiceId, method, amount, date/paidAt, note }
- */
 export async function recordPayment(data) {
-  try {
-    const payload = {
-      invoiceId: data.invoiceId,
-      amount:    parseFloat(data.amount) || 0,
-      method:    data.method || 'Bank Transfer',
-      date:      data.date || new Date().toISOString().slice(0, 10),
-      note:      data.note || '',
-    };
-    return await api('/finance/payments', {
-      method: 'POST',
-      body:   JSON.stringify(payload),
-    });
-  } catch (err) {
-    console.warn('Backend recordPayment failed, fallback to local record:', err.message);
-    // If backend fails or throws validation error, propagate or fallback
-    throw err;
-  }
+  const payload = {
+    invoiceId: data.invoiceId,
+    amount:    parseFloat(data.amount) || 0,
+    method:    data.method || 'Bank Transfer',
+    date:      data.date || new Date().toISOString().slice(0, 10),
+    note:      data.note || '',
+  };
+  return api('/finance/payments', {
+    method: 'POST',
+    body:   JSON.stringify(payload),
+  });
 }
 
-/**
- * List invoices available for payment recording.
- */
 export async function getInvoicesForPayment() {
   try {
     const data = await api('/finance/invoices');
-    return Array.isArray(data) ? data : mockInvoices;
+    return Array.isArray(data) ? data : [];
   } catch (err) {
-    console.warn('Backend /finance/invoices offline, using mock fallback:', err.message);
-    return mockInvoices;
+    console.error('getInvoicesForPayment error:', err.message);
+    return [];
   }
 }
 
@@ -98,41 +77,26 @@ export async function getInvoicesForPayment() {
 // OVERDUE TRACKING & REMINDERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Get all overdue invoices.
- */
 export async function getOverdueInvoices() {
   try {
     const data = await api('/finance/overdue');
-    return Array.isArray(data) ? data : mockInvoices.filter((i) => i.status === 'overdue');
+    return Array.isArray(data) ? data : [];
   } catch (err) {
-    console.warn('Backend /finance/overdue offline, using mock fallback:', err.message);
-    return mockInvoices.filter((i) => i.status === 'overdue');
+    console.error('getOverdueInvoices error:', err.message);
+    return [];
   }
 }
 
-/**
- * Send email reminder for an overdue invoice.
- */
 export async function sendReminder(invoiceId) {
-  try {
-    return await api(`/finance/invoices/${invoiceId}/send-reminder`, {
-      method: 'POST',
-    });
-  } catch (err) {
-    console.warn('Backend send-reminder failed, simulating reminder:', err.message);
-    await new Promise((r) => setTimeout(r, 400));
-    return { success: true };
-  }
+  return api(`/finance/invoices/${invoiceId}/send-reminder`, {
+    method: 'POST',
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DASHBOARD & REPORTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Get aggregate statistics for the Finance Dashboard.
- */
 export async function getDashboardStats(filters = {}) {
   try {
     const cleanFilters = Object.fromEntries(
@@ -141,88 +105,57 @@ export async function getDashboardStats(filters = {}) {
     const qs = new URLSearchParams(cleanFilters).toString();
     return await api(`/finance/dashboard/stats${qs ? `?${qs}` : ''}`);
   } catch (err) {
-    console.warn('Backend /finance/dashboard/stats offline, using mock fallback:', err.message);
-    const activeCount = mockSubscriptions.filter((s) => s.status === 'active').length;
-    const revenueCollected = mockPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const overdueInvoices = mockInvoices.filter((i) => i.status === 'overdue');
-    const amountOwed = overdueInvoices.reduce((sum, i) => sum + i.total, 0);
-
+    console.error('getDashboardStats error:', err.message);
     return {
-      activeSubscriptions: activeCount,
-      revenueCollected,
-      amountOwed,
-      overdueCount: overdueInvoices.length,
-      recentPayments: mockPayments.slice(0, 5),
-      overdueInvoices: overdueInvoices.slice(0, 5),
+      activeSubscriptions: 0,
+      revenueCollected: 0,
+      amountOwed: 0,
+      overdueCount: 0,
+      recentPayments: [],
+      overdueInvoices: [],
       invoiceStatusData: [
-        { name: 'Paid',     value: 11 },
-        { name: 'Pending',  value: 3 },
-        { name: 'Overdue',  value: 4 },
-        { name: 'Draft',    value: 1 },
-        { name: 'Confirmed',value: 1 },
+        { name: 'Paid',      value: 0 },
+        { name: 'Pending',   value: 0 },
+        { name: 'Overdue',   value: 0 },
+        { name: 'Draft',     value: 0 },
+        { name: 'Confirmed', value: 0 },
       ],
     };
   }
 }
 
-/**
- * Get 12-month Revenue vs Invoiced chart data.
- */
 export async function getRevenueChartData() {
   try {
     const data = await api('/finance/dashboard/revenue-chart');
-    return Array.isArray(data) && data.length ? data : getFallbackChartData();
+    return Array.isArray(data) && data.length ? data : getEmptyChartData();
   } catch (err) {
-    console.warn('Backend /finance/dashboard/revenue-chart offline, using mock fallback:', err.message);
-    return getFallbackChartData();
+    console.error('getRevenueChartData error:', err.message);
+    return getEmptyChartData();
   }
 }
 
-function getFallbackChartData() {
-  return [
-    { month: 'Jan', revenue: 180000, invoiced: 220000 },
-    { month: 'Feb', revenue: 210000, invoiced: 240000 },
-    { month: 'Mar', revenue: 195000, invoiced: 215000 },
-    { month: 'Apr', revenue: 275000, invoiced: 310000 },
-    { month: 'May', revenue: 310000, invoiced: 340000 },
-    { month: 'Jun', revenue: 290000, invoiced: 320000 },
-    { month: 'Jul', revenue: 340000, invoiced: 380000 },
-    { month: 'Aug', revenue: 365000, invoiced: 400000 },
-    { month: 'Sep', revenue: 320000, invoiced: 360000 },
-    { month: 'Oct', revenue: 400000, invoiced: 440000 },
-    { month: 'Nov', revenue: 380000, invoiced: 420000 },
-    { month: 'Dec', revenue: 450000, invoiced: 490000 },
-  ];
+function getEmptyChartData() {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months.map((month) => ({ month, revenue: 0, invoiced: 0 }));
 }
 
-/**
- * Get full financial reports data.
- */
 export async function getReportsData() {
   try {
     return await api('/finance/reports');
   } catch (err) {
-    console.warn('Backend /finance/reports offline, using fallback:', err.message);
+    console.error('getReportsData error:', err.message);
     return {
       summary: {
-        totalRevenue:    '₹14.0L',
-        totalInvoiced:   '₹15.6L',
-        avgInvoiceValue: '₹52,340',
-        collectionRate:  '87%',
+        totalRevenue:    '₹0',
+        totalInvoiced:   '₹0',
+        avgInvoiceValue: '₹0',
+        collectionRate:  '0%',
       },
-      planData: [
-        { plan: 'Starter',    count: 7,  revenue: 82600 },
-        { plan: 'Growth',     count: 9,  revenue: 428400 },
-        { plan: 'Enterprise', count: 6,  revenue: 538200 },
-        { plan: 'Annual',     count: 2,  revenue: 348000 },
-      ],
+      planData: [],
     };
   }
 }
 
-/**
- * Trigger CSV export download.
- */
 export function exportCsv() {
   const token = getToken();
   window.open(`${BASE}/finance/reports/export${token ? `?token=${encodeURIComponent(token)}` : ''}`, '_blank');
@@ -232,103 +165,74 @@ export function exportCsv() {
 // CUSTOMER PORTAL
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Get subscriptions for customer portal.
- */
 export async function getCustomerSubscriptions(customerId) {
   try {
     const qs = customerId ? `?customerId=${encodeURIComponent(customerId)}` : '';
     const data = await api(`/finance/customer/subscriptions${qs}`);
-    return Array.isArray(data) ? data : mockSubscriptions.filter((s) => s.customerId === customerId);
+    return Array.isArray(data) ? data : [];
   } catch (err) {
-    console.warn('Backend customer subscriptions offline, using mock fallback:', err.message);
-    return mockSubscriptions.filter((s) => s.customerId === customerId);
+    console.error('getCustomerSubscriptions error:', err.message);
+    return [];
   }
 }
 
-/**
- * Get single customer subscription detail.
- */
 export async function getCustomerSubscription(id) {
   try {
     return await api(`/finance/customer/subscriptions/${id}`);
   } catch (err) {
-    console.warn('Backend subscription detail offline, using mock fallback:', err.message);
-    return mockSubscriptions.find((s) => s.id === id) || null;
+    console.error('getCustomerSubscription error:', err.message);
+    return null;
   }
 }
 
-/**
- * Perform subscription action (Pause / Resume / Renew / Close).
- */
 export async function performSubscriptionAction(subId, action) {
-  try {
-    return await api(`/finance/customer/subscriptions/${subId}/action`, {
-      method: 'PATCH',
-      body:   JSON.stringify({ action }),
-    });
-  } catch (err) {
-    console.warn('Backend subscription action offline, local update:', err.message);
-    throw err;
-  }
+  return api(`/finance/customer/subscriptions/${subId}/action`, {
+    method: 'PATCH',
+    body:   JSON.stringify({ action }),
+  });
 }
 
-/**
- * Get invoices for customer portal.
- */
 export async function getCustomerInvoices(customerId) {
   try {
     const qs = customerId ? `?customerId=${encodeURIComponent(customerId)}` : '';
     const data = await api(`/finance/customer/invoices${qs}`);
-    return Array.isArray(data) ? data : mockInvoices.filter((i) => i.customerId === customerId);
+    return Array.isArray(data) ? data : [];
   } catch (err) {
-    console.warn('Backend customer invoices offline, using mock fallback:', err.message);
-    return mockInvoices.filter((i) => i.customerId === customerId);
+    console.error('getCustomerInvoices error:', err.message);
+    return [];
   }
 }
 
-/**
- * Get single invoice detail.
- */
 export async function getCustomerInvoice(id) {
   try {
     return await api(`/finance/customer/invoices/${id}`);
   } catch (err) {
-    console.warn('Backend invoice detail offline, using mock fallback:', err.message);
-    return mockInvoices.find((i) => i.id === id) || null;
+    console.error('getCustomerInvoice error:', err.message);
+    return null;
   }
 }
 
-/**
- * Get payments for customer portal.
- */
 export async function getCustomerPayments(customerId) {
   try {
     const qs = customerId ? `?customerId=${encodeURIComponent(customerId)}` : '';
     const data = await api(`/finance/customer/payments${qs}`);
-    return Array.isArray(data) ? data : mockPayments.filter((p) => p.customerId === customerId);
+    return Array.isArray(data) ? data : [];
   } catch (err) {
-    console.warn('Backend customer payments offline, using mock fallback:', err.message);
-    return mockPayments.filter((p) => p.customerId === customerId);
+    console.error('getCustomerPayments error:', err.message);
+    return [];
   }
 }
 
-/**
- * Get customer profile data.
- */
 export async function getCustomerProfile(customerId) {
   try {
     const qs = customerId ? `?customerId=${encodeURIComponent(customerId)}` : '';
     return await api(`/finance/customer/profile${qs}`);
   } catch (err) {
-    console.warn('Backend customer profile offline, using mock fallback:', err.message);
+    console.error('getCustomerProfile error:', err.message);
     return null;
   }
 }
 
-/**
- * Update customer profile.
- */
 export async function updateCustomerProfile(data) {
   return api('/finance/customer/profile', {
     method: 'PUT',

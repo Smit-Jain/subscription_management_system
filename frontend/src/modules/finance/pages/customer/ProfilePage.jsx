@@ -4,27 +4,25 @@ import { Button } from '../../../../components/ui/Button';
 import { Input, Textarea } from '../../../../components/ui/FormFields';
 import { Avatar } from '../../../../components/ui/Avatar';
 import { getCustomerProfile, updateCustomerProfile } from '../../services/finance.service';
-import { mockCurrentCustomer } from '../../../../mock/users';
 import { useToast } from '../../../../context/ToastContext';
 import { useAuth } from '../../../../context/RoleContext';
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const customer = user || mockCurrentCustomer;
   const toast = useToast();
 
   const [form, setForm] = useState({
-    name:    customer.name || '',
-    email:   customer.email || '',
-    phone:   customer.phone || '',
-    company: customer.company || '',
-    address: customer.address || '12 MG Road, Bengaluru 560001',
-    plan:    customer.plan || 'Growth',
+    name:    user?.name || '',
+    email:   user?.email || '',
+    phone:   user?.phone || '',
+    company: user?.company || '',
+    address: '12 MG Road, Bengaluru 560001',
+    plan:    'Growth',
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getCustomerProfile(customer.id).then((profile) => {
+    getCustomerProfile(user?.id).then((profile) => {
       if (profile) {
         setForm((prev) => ({
           ...prev,
@@ -37,7 +35,7 @@ export default function ProfilePage() {
         }));
       }
     });
-  }, [customer.id]);
+  }, [user?.id]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -46,7 +44,7 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       await updateCustomerProfile({
-        id:      customer.id,
+        id:      user?.id,
         name:    form.name,
         email:   form.email,
         phone:   form.phone,
@@ -54,8 +52,8 @@ export default function ProfilePage() {
         address: form.address,
       });
       toast.success('Profile updated successfully.');
-    } catch {
-      toast.success('Profile updated successfully.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update profile.');
     } finally {
       setLoading(false);
     }
@@ -67,12 +65,12 @@ export default function ProfilePage() {
 
       <div className="bg-paper rounded-2xl border border-border p-6">
         <div className="flex items-center gap-5 mb-7">
-          <Avatar name={form.name} size="xl" />
+          <Avatar name={form.name || 'User'} size="xl" />
           <div>
-            <h2 className="font-heading font-bold text-xl text-ink">{form.name}</h2>
-            <p className="text-sm text-ink-soft">{form.company}</p>
+            <h2 className="font-heading font-bold text-xl text-ink">{form.name || 'Account'}</h2>
+            <p className="text-sm text-ink-soft">{form.company || 'Customer Account'}</p>
             <p className="text-xs text-ink-soft mt-1">
-              Customer account · Brightloop
+              Registered account · Brightloop Software
             </p>
           </div>
         </div>
