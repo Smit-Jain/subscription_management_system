@@ -55,7 +55,7 @@ Create `frontend/.env` and add:
 VITE_API_URL=http://localhost:5001/api
 ```
 
-> ⚠️ **Port note:** macOS AirPlay occupies port 5000. This project runs the backend on **port 5001**.
+
 
 ### 2. Backend Setup
 
