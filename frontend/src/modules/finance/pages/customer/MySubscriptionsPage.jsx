@@ -5,31 +5,35 @@ import { StatusBadge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { PageHeader } from '../../../../components/ui/PageHeader';
 import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
-import { getCustomerSubscriptions } from '../../services/finance.service';
-import { mockCurrentCustomer } from '../../../../mock/users';
-import { mockPlans } from '../../../../mock/products';
+import { getCustomerSubscriptions, performSubscriptionAction } from '../../services/finance.service';
 import { formatDate, formatCurrency } from '../../../../utils/index';
 import { useToast } from '../../../../context/ToastContext';
+import { useAuth } from '../../../../context/RoleContext';
 
 export default function MySubscriptionsPage() {
   const [subs, setSubs] = useState([]);
   const [action, setAction] = useState(null); // { type, subId }
   const navigate = useNavigate();
   const toast = useToast();
-  const customer = mockCurrentCustomer;
+  const { user } = useAuth();
 
   useEffect(() => {
-    // TODO(D): Replace with real API using customer auth token
-    getCustomerSubscriptions(customer.id).then(setSubs);
-  }, []);
+    if (user?.id) {
+      getCustomerSubscriptions(user.id).then(setSubs);
+    } else {
+      getCustomerSubscriptions().then(setSubs);
+    }
+  }, [user?.id]);
 
-  const getPlanConfig = (planName) => mockPlans.find((p) => p.name === planName) || {};
-
-  const doAction = (type, subId) => {
+  const doAction = async (type, subId) => {
     const statusMap = { Pause: 'paused', Resume: 'active', Renew: 'active', Close: 'closed' };
-    const newStatus = statusMap[type];
-    setSubs((prev) => prev.map((s) => s.id === subId ? { ...s, status: newStatus } : s));
-    toast.success(`Subscription ${type.toLowerCase()}d successfully.`);
+    try {
+      await performSubscriptionAction(subId, type);
+      setSubs((prev) => prev.map((s) => s.id === subId ? { ...s, status: statusMap[type] } : s));
+      toast.success(`Subscription ${type.toLowerCase()}d successfully.`);
+    } catch (err) {
+      toast.error(err.message || `Failed to ${type.toLowerCase()} subscription.`);
+    }
     setAction(null);
   };
 
@@ -41,14 +45,17 @@ export default function MySubscriptionsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="My Subscriptions" subtitle={`Welcome back, ${customer.name.split(' ')[0]}!`} />
+      <PageHeader title="My Subscriptions" subtitle={`Welcome back${user?.name ? `, ${user.name.split(' ')[0]}` : ''}!`} />
 
       {subs.length === 0 ? (
-        <div className="text-center py-20 text-ink-soft">No subscriptions found.</div>
+        <div className="bg-paper rounded-2xl border border-border p-12 text-center text-ink-soft">
+          <p className="font-medium text-ink">No subscriptions found.</p>
+          <p className="text-xs text-ink-soft mt-1">Explore our product catalog and plans to subscribe.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {subs.map((sub) => {
-            const plan = getPlanConfig(sub.plan);
+            const plan = sub.planConfig || { renewable: true, pausable: true, closableEarly: true };
             const gradCls = BG_MAP[sub.plan] || 'from-cream to-paper border-border';
             const isActive = sub.status === 'active';
             const isPaused = sub.status === 'paused';
@@ -62,7 +69,7 @@ export default function MySubscriptionsPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="font-heading font-bold text-xl text-ink">{sub.plan} Plan</p>
-                    <p className="text-xs text-ink-soft font-mono mt-0.5">{sub.id}</p>
+                    <p className="text-xs text-ink-soft font-mono mt-0.5">{sub.number || sub.id}</p>
                   </div>
                   <StatusBadge status={sub.status} />
                 </div>
@@ -82,7 +89,7 @@ export default function MySubscriptionsPage() {
                   </div>
                   <div>
                     <p className="text-xs text-ink-soft">Payment Terms</p>
-                    <p className="text-sm font-medium text-ink">{sub.paymentTerms}</p>
+                    <p className="text-sm font-medium text-ink">{sub.paymentTerms || 'Net 30'}</p>
                   </div>
                 </div>
 
@@ -110,9 +117,9 @@ export default function MySubscriptionsPage() {
       <ConfirmDialog
         open={!!action}
         onClose={() => setAction(null)}
-        onConfirm={() => doAction(action?.type, action?.subId)}
+        onConfirm={() => doAction(action.type, action.subId)}
         title={`${action?.type} Subscription`}
-        message={`Are you sure you want to ${action?.type?.toLowerCase()} this subscription?`}
+        message={`Are you sure you want to ${action?.type.toLowerCase()} this subscription?`}
         confirmLabel={action?.type}
         variant={action?.type === 'Close' ? 'danger' : 'primary'}
       />

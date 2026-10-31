@@ -5,11 +5,10 @@ import { StatusStepper } from '../../../../components/ui/StatusStepper';
 import { StatusBadge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
-import { getCustomerSubscriptions } from '../../services/finance.service';
-import { mockCurrentCustomer } from '../../../../mock/users';
-import { mockPlans } from '../../../../mock/products';
+import { getCustomerSubscription, getCustomerSubscriptions, performSubscriptionAction } from '../../services/finance.service';
 import { formatDate, formatCurrency } from '../../../../utils/index';
 import { useToast } from '../../../../context/ToastContext';
+import { useAuth } from '../../../../context/RoleContext';
 
 const SUB_STEPS = [
   { key: 'draft',     label: 'Draft' },
@@ -23,25 +22,38 @@ export default function CustomerSubDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+
   const [sub, setSub] = useState(null);
   const [action, setAction] = useState(null);
 
   useEffect(() => {
-    getCustomerSubscriptions(mockCurrentCustomer.id).then((list) => {
-      setSub(list.find((s) => s.id === id) || null);
+    getCustomerSubscription(id).then((found) => {
+      if (found) {
+        setSub(found);
+      } else if (user?.id) {
+        getCustomerSubscriptions(user.id).then((list) => {
+          setSub(list.find((s) => s.id === id) || null);
+        });
+      }
     });
-  }, [id]);
+  }, [id, user?.id]);
 
   if (!sub) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-6 h-6 border-2 border-forest border-t-transparent rounded-full" /></div>;
 
-  const plan = mockPlans.find((p) => p.name === sub.plan) || {};
+  const plan = sub.planConfig || { renewable: true, pausable: true, closableEarly: true };
   const isActive = sub.status === 'active';
   const isPaused = sub.status === 'paused';
 
-  const doAction = (type) => {
+  const doAction = async (type) => {
     const statusMap = { Pause: 'paused', Resume: 'active', Renew: 'active', Close: 'closed' };
-    setSub((s) => ({ ...s, status: statusMap[type] }));
-    toast.success(`Subscription ${type.toLowerCase()}d.`);
+    try {
+      await performSubscriptionAction(sub.id, type);
+      setSub((s) => ({ ...s, status: statusMap[type] }));
+      toast.success(`Subscription ${type.toLowerCase()}d successfully.`);
+    } catch (err) {
+      toast.error(err.message || `Failed to ${type.toLowerCase()} subscription.`);
+    }
     setAction(null);
   };
 
@@ -77,7 +89,7 @@ export default function CustomerSubDetailPage() {
           { label: 'Expiry Date',   value: formatDate(sub.expiryDate) },
           { label: 'Payment Terms', value: sub.paymentTerms },
           { label: 'Total Value',   value: <span className="text-forest font-bold">{formatCurrency(sub.total)}</span> },
-          { label: 'Template',      value: sub.templateId || 'Custom' },
+          { label: 'Template',      value: sub.templateId || 'Standard' },
           { label: 'Plan',          value: sub.plan },
         ].map(({ label, value }) => (
           <div key={label} className="bg-paper rounded-xl border border-border p-4">
