@@ -1,0 +1,60 @@
+// ============================================================
+// MOCK DATA — Invoices & Payments
+// TODO(C): Replace with real API calls from billing service
+// TODO(D): Replace with real API calls from finance service
+// ============================================================
+
+export const mockInvoices = [
+  { id: 'inv1',  number: 'INV-2024-0001', customerId: 'u1',  customerName: 'Arjun Mehta',    subscriptionId: 'sub1',  issueDate: '2024-01-15', dueDate: '2024-02-14', status: 'paid',      subtotal: 76000, tax: 13680, discount: 0,    total: 89680,  lines: [{ product: 'Odoo ERP Core', qty: 1, unitPrice: 25000, tax: 18, amount: 25000 }, { product: 'Manufacturing Module', qty: 1, unitPrice: 14000, tax: 18, amount: 14000 }, { product: 'Annual Support SLA', qty: 1, unitPrice: 22000, tax: 18, amount: 22000 }, { product: 'Implementation Services', qty: 1, unitPrice: 15000, tax: 18, amount: 15000 }] },
+  { id: 'inv2',  number: 'INV-2024-0002', customerId: 'u2',  customerName: 'Priya Sharma',   subscriptionId: 'sub2',  issueDate: '2024-03-01', dueDate: '2024-03-16', status: 'paid',      subtotal: 40000, tax: 7200,  discount: 2000, total: 45200,  lines: [{ product: 'Odoo ERP Core', qty: 1, unitPrice: 25000, tax: 18, amount: 25000 }, { product: 'CRM Module', qty: 1, unitPrice: 8000, tax: 18, amount: 8000 }] },
+  { id: 'inv3',  number: 'INV-2024-0003', customerId: 'u3',  customerName: 'Ravi Kumar',     subscriptionId: 'sub3',  issueDate: '2024-04-10', dueDate: '2024-05-10', status: 'overdue',   subtotal: 16000, tax: 2880,  discount: 0,    total: 18880,  lines: [{ product: 'Cloud Hosting - Basic', qty: 1, unitPrice: 3000, tax: 18, amount: 3000 }, { product: 'SSL Certificate', qty: 1, unitPrice: 1200, tax: 18, amount: 1200 }] },
+  { id: 'inv4',  number: 'INV-2024-0004', customerId: 'u4',  customerName: 'Sunita Rao',     subscriptionId: 'sub4',  issueDate: '2024-05-01', dueDate: '2024-05-31', status: 'pending',   subtotal: 40000, tax: 7200,  discount: 0,    total: 47200,  lines: [{ product: 'CRM Module', qty: 1, unitPrice: 8000, tax: 18, amount: 8000 }, { product: 'HR & Payroll Module', qty: 1, unitPrice: 12000, tax: 18, amount: 12000 }] },
+  { id: 'inv5',  number: 'INV-2024-0005', customerId: 'u5',  customerName: 'Vikram Nair',    subscriptionId: 'sub5',  issueDate: '2024-06-15', dueDate: '2024-07-30', status: 'paid',      subtotal: 88000, tax: 15840, discount: 5000, total: 98840,  lines: [{ product: 'Odoo ERP Core', qty: 1, unitPrice: 25000, tax: 18, amount: 25000 }, { product: 'Implementation Services', qty: 1, unitPrice: 35000, tax: 18, amount: 35000 }] },
+  { id: 'inv6',  number: 'INV-2024-0006', customerId: 'u7',  customerName: 'Anand Joshi',    subscriptionId: 'sub7',  issueDate: '2024-07-01', dueDate: '2024-07-31', status: 'paid',      subtotal: 33000, tax: 5940,  discount: 0,    total: 38940,  lines: [{ product: 'Odoo ERP Core', qty: 1, unitPrice: 25000, tax: 18, amount: 25000 }, { product: 'E-Commerce Module', qty: 1, unitPrice: 7500, tax: 18, amount: 7500 }] },
+  { id: 'inv7',  number: 'INV-2024-0007', customerId: 'u8',  customerName: 'Kavitha Menon',  subscriptionId: 'sub8',  issueDate: '2024-08-01', dueDate: '2024-08-31', status: 'paid',      subtotal: 76000, tax: 13680, discount: 0,    total: 89680,  lines: [{ product: 'Odoo ERP Core', qty: 1, unitPrice: 25000, tax: 18, amount: 25000 }, { product: 'Manufacturing Module', qty: 1, unitPrice: 14000, tax: 18, amount: 14000 }] },
+  { id: 'inv8',  number: 'INV-2024-0008', customerId: 'u9',  customerName: 'Rahul Desai',    subscriptionId: 'sub9',  issueDate: '2024-09-01', dueDate: '2024-10-01', status: 'overdue',   subtotal: 10000, tax: 1800,  discount: 0,    total: 11800,  lines: [{ product: 'Cloud Hosting - Basic', qty: 1, unitPrice: 3000, tax: 18, amount: 3000 }] },
+  { id: 'inv9',  number: 'INV-2024-0009', customerId: 'u10', customerName: 'Meera Krishnan', subscriptionId: 'sub10', issueDate: '2024-10-01', dueDate: '2024-10-16', status: 'paid',      subtotal: 12000, tax: 2160,  discount: 0,    total: 14160,  lines: [{ product: 'E-Commerce Module', qty: 1, unitPrice: 7500, tax: 18, amount: 7500 }, { product: 'Email Marketing', qty: 1, unitPrice: 4500, tax: 18, amount: 4500 }] },
+  { id: 'inv10', number: 'INV-2024-0010', customerId: 'u12', customerName: 'Lakshmi Iyer',   subscriptionId: 'sub12', issueDate: '2024-11-01', dueDate: '2024-12-01', status: 'paid',      subtotal: 33000, tax: 5940,  discount: 0,    total: 38940,  lines: [{ product: 'CRM Module', qty: 1, unitPrice: 8000, tax: 18, amount: 8000 }] },
+  { id: 'inv11', number: 'INV-2024-0011', customerId: 'u14', customerName: 'Pooja Singh',    subscriptionId: 'sub14', issueDate: '2024-12-01', dueDate: '2024-12-16', status: 'paid',      subtotal: 40000, tax: 7200,  discount: 0,    total: 47200,  lines: [{ product: 'CRM Module', qty: 1, unitPrice: 8000, tax: 18, amount: 8000 }, { product: 'HR & Payroll Module', qty: 1, unitPrice: 12000, tax: 18, amount: 12000 }] },
+  { id: 'inv12', number: 'INV-2025-0001', customerId: 'u15', customerName: 'Kiran Reddy',    subscriptionId: 'sub15', issueDate: '2025-01-01', dueDate: '2025-02-15', status: 'draft',     subtotal: 88000, tax: 15840, discount: 0,    total: 103840, lines: [] },
+  { id: 'inv13', number: 'INV-2025-0002', customerId: 'u17', customerName: 'Ashwin Bhat',    subscriptionId: 'sub17', issueDate: '2025-03-01', dueDate: '2025-03-31', status: 'confirmed', subtotal: 40000, tax: 7200,  discount: 0,    total: 47200,  lines: [] },
+  { id: 'inv14', number: 'INV-2025-0003', customerId: 'u18', customerName: 'Ritu Malhotra',  subscriptionId: 'sub18', issueDate: '2025-04-01', dueDate: '2025-05-01', status: 'pending',   subtotal: 76000, tax: 13680, discount: 0,    total: 89680,  lines: [] },
+  { id: 'inv15', number: 'INV-2025-0004', customerId: 'u20', customerName: 'Smita Jain',     subscriptionId: 'sub20', issueDate: '2025-06-01', dueDate: '2025-06-16', status: 'pending',   subtotal: 40000, tax: 7200,  discount: 0,    total: 47200,  lines: [] },
+  { id: 'inv16', number: 'INV-2025-0005', customerId: 'u3',  customerName: 'Ravi Kumar',     subscriptionId: 'sub3',  issueDate: '2025-05-10', dueDate: '2025-06-09', status: 'overdue',   subtotal: 16000, tax: 2880,  discount: 0,    total: 18880,  lines: [] },
+  { id: 'inv17', number: 'INV-2025-0006', customerId: 'u16', customerName: 'Neha Agarwal',   subscriptionId: 'sub16', issueDate: '2025-07-01', dueDate: '2025-08-01', status: 'overdue',   subtotal: 10000, tax: 1800,  discount: 0,    total: 11800,  lines: [] },
+  { id: 'inv18', number: 'INV-2025-0007', customerId: 'u1',  customerName: 'Arjun Mehta',    subscriptionId: 'sub1',  issueDate: '2025-02-01', dueDate: '2025-03-02', status: 'paid',      subtotal: 76000, tax: 13680, discount: 0,    total: 89680,  lines: [] },
+  { id: 'inv19', number: 'INV-2025-0008', customerId: 'u2',  customerName: 'Priya Sharma',   subscriptionId: 'sub2',  issueDate: '2025-04-01', dueDate: '2025-04-16', status: 'paid',      subtotal: 40000, tax: 7200,  discount: 2000, total: 45200,  lines: [] },
+  { id: 'inv20', number: 'INV-2025-0009', customerId: 'u5',  customerName: 'Vikram Nair',    subscriptionId: 'sub5',  issueDate: '2025-07-15', dueDate: '2025-08-29', status: 'confirmed', subtotal: 88000, tax: 15840, discount: 0,    total: 103840, lines: [] },
+];
+
+export const mockPayments = [
+  { id: 'pay1',  invoiceId: 'inv1',  invoiceNumber: 'INV-2024-0001', customerId: 'u1',  customerName: 'Arjun Mehta',    amount: 89680,  method: 'Bank Transfer', date: '2024-02-10', note: 'Transfer from HDFC Account',    status: 'completed' },
+  { id: 'pay2',  invoiceId: 'inv2',  invoiceNumber: 'INV-2024-0002', customerId: 'u2',  customerName: 'Priya Sharma',   amount: 45200,  method: 'UPI',           date: '2024-03-12', note: 'GPay payment',                   status: 'completed' },
+  { id: 'pay3',  invoiceId: 'inv5',  invoiceNumber: 'INV-2024-0005', customerId: 'u5',  customerName: 'Vikram Nair',    amount: 98840,  method: 'Cheque',        date: '2024-07-28', note: 'Cheque #002341',                 status: 'completed' },
+  { id: 'pay4',  invoiceId: 'inv6',  invoiceNumber: 'INV-2024-0006', customerId: 'u7',  customerName: 'Anand Joshi',    amount: 38940,  method: 'Bank Transfer', date: '2024-07-25', note: 'NEFT - Axis to SBI',             status: 'completed' },
+  { id: 'pay5',  invoiceId: 'inv7',  invoiceNumber: 'INV-2024-0007', customerId: 'u8',  customerName: 'Kavitha Menon',  amount: 89680,  method: 'UPI',           date: '2024-08-29', note: 'PhonePe',                        status: 'completed' },
+  { id: 'pay6',  invoiceId: 'inv9',  invoiceNumber: 'INV-2024-0009', customerId: 'u10', customerName: 'Meera Krishnan', amount: 14160,  method: 'Credit Card',   date: '2024-10-14', note: 'Visa ending 4521',               status: 'completed' },
+  { id: 'pay7',  invoiceId: 'inv10', invoiceNumber: 'INV-2024-0010', customerId: 'u12', customerName: 'Lakshmi Iyer',   amount: 38940,  method: 'Bank Transfer', date: '2024-11-28', note: 'IMPS from Canara',               status: 'completed' },
+  { id: 'pay8',  invoiceId: 'inv11', invoiceNumber: 'INV-2024-0011', customerId: 'u14', customerName: 'Pooja Singh',    amount: 47200,  method: 'UPI',           date: '2024-12-15', note: '',                               status: 'completed' },
+  { id: 'pay9',  invoiceId: 'inv18', invoiceNumber: 'INV-2025-0007', customerId: 'u1',  customerName: 'Arjun Mehta',    amount: 89680,  method: 'Bank Transfer', date: '2025-02-28', note: 'Renewal payment',                status: 'completed' },
+  { id: 'pay10', invoiceId: 'inv19', invoiceNumber: 'INV-2025-0008', customerId: 'u2',  customerName: 'Priya Sharma',   amount: 45200,  method: 'UPI',           date: '2025-04-14', note: '',                               status: 'completed' },
+  { id: 'pay11', invoiceId: 'inv4',  invoiceNumber: 'INV-2024-0004', customerId: 'u4',  customerName: 'Sunita Rao',     amount: 20000,  method: 'Bank Transfer', date: '2024-05-20', note: 'Partial payment',                status: 'partial' },
+  { id: 'pay12', invoiceId: 'inv3',  invoiceNumber: 'INV-2024-0003', customerId: 'u3',  customerName: 'Ravi Kumar',     amount: 0,      method: '',              date: '',           note: 'Pending since May 2024',         status: 'pending' },
+];
+
+export const mockTaxes = [
+  { id: 'tax1', name: 'GST 18%',   percentage: 18, appliesTo: 'All products',  status: 'active' },
+  { id: 'tax2', name: 'GST 12%',   percentage: 12, appliesTo: 'Goods',         status: 'active' },
+  { id: 'tax3', name: 'GST 5%',    percentage: 5,  appliesTo: 'Essential goods',status: 'active' },
+  { id: 'tax4', name: 'TDS 10%',   percentage: 10, appliesTo: 'Services',      status: 'active' },
+  { id: 'tax5', name: 'IGST 18%',  percentage: 18, appliesTo: 'Interstate',    status: 'active' },
+  { id: 'tax6', name: 'CESS 1%',   percentage: 1,  appliesTo: 'Luxury goods',  status: 'inactive' },
+];
+
+export const mockDiscounts = [
+  { id: 'disc1', name: 'New Customer 10%',    type: 'percentage', value: 10, minPurchase: 10000, minQty: null, startDate: '2024-01-01', endDate: '2024-12-31', usageLimit: 50,  used: 32, appliesTo: 'All subscriptions' },
+  { id: 'disc2', name: 'Enterprise Flat Off', type: 'fixed',      value: 5000, minPurchase: 80000, minQty: null, startDate: '2024-06-01', endDate: '2025-06-30', usageLimit: 20, used: 8, appliesTo: 'Enterprise plan' },
+  { id: 'disc3', name: 'Annual Pre-pay 15%',  type: 'percentage', value: 15, minPurchase: null, minQty: 1, startDate: '2024-01-01', endDate: null, usageLimit: 100, used: 45, appliesTo: 'Annual plans' },
+  { id: 'disc4', name: 'Referral Bonus ₹2000',type: 'fixed',      value: 2000, minPurchase: null, minQty: 1, startDate: '2024-04-01', endDate: '2024-12-31', usageLimit: 200, used: 87, appliesTo: 'Growth & Enterprise' },
+  { id: 'disc5', name: 'SME Special 8%',      type: 'percentage', value: 8, minPurchase: 20000, minQty: null, startDate: '2025-01-01', endDate: '2025-06-30', usageLimit: 30, used: 5, appliesTo: 'Starter & Growth' },
+];
