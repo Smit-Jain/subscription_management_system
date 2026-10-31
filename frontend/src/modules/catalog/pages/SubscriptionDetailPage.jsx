@@ -5,7 +5,7 @@ import { StatusStepper } from '../../../components/ui/StatusStepper';
 import { Button } from '../../../components/ui/Button';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
-import { getSubscription } from '../services/catalog.service';
+import { getSubscription, transitionSubscription } from '../services/catalog.service';
 import { formatDate, formatCurrency } from '../../../utils/index';
 import { useToast } from '../../../context/ToastContext';
 
@@ -29,10 +29,10 @@ export default function SubscriptionDetailPage() {
   const navigate = useNavigate();
   const [sub, setSub] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
-    // TODO(B): Replace with real API
     getSubscription(id).then(setSub);
   }, [id]);
 
@@ -46,23 +46,18 @@ export default function SubscriptionDetailPage() {
   const isPaused = sub.status === 'paused';
   const isActive = sub.status === 'active';
 
-  const doAction = (action) => {
-    // TODO(B): Call real API to update status, trigger invoice generation on activation
-    const nextStatus = {
-      'Send Quotation': 'quotation',
-      'Confirm': 'confirmed',
-      'Activate': 'active',
-      'Close': 'closed',
-      'Pause': 'paused',
-      'Renew': 'active',
-      'Resume': 'active',
-    }[action];
-
-    if (nextStatus) {
-      setSub((s) => ({ ...s, status: nextStatus }));
+  const doAction = async (action) => {
+    setActionLoading(true);
+    try {
+      const updated = await transitionSubscription(sub.id, action);
+      setSub(updated);
       toast.success(`Subscription ${action.toLowerCase()}d successfully.`);
+    } catch (err) {
+      toast.error(err.message || `Failed to ${action.toLowerCase()} subscription.`);
+    } finally {
+      setActionLoading(false);
+      setConfirmAction(null);
     }
-    setConfirmAction(null);
   };
 
   const currentStepKey = sub.status === 'overdue' ? 'active' : sub.status;

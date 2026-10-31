@@ -3,29 +3,29 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Package, FileText, CreditCard,
   BookOpen, Receipt, AlertCircle, BarChart3, Tag, Percent,
-  UserCog, X, Menu, LogOut, ChevronDown, ChevronRight, Bell,
+  UserCog, X, Menu, LogOut, ChevronDown, Bell,
   RefreshCw,
 } from 'lucide-react';
-import { useRole } from '../context/RoleContext';
+import { useAuth } from '../context/RoleContext';
 import { Avatar } from '../components/ui/Avatar';
 
 const ALL_NAV = [
-  { key: 'dashboard',    label: 'Dashboard',            icon: LayoutDashboard, path: '/admin/dashboard',    roles: ['admin', 'staff'] },
-  { key: 'customers',   label: 'Customers',             icon: Users,           path: '/admin/customers',    roles: ['admin', 'staff'] },
-  { key: 'products',    label: 'Products',              icon: Package,         path: '/admin/products',     roles: ['admin'] },
-  { key: 'plans',       label: 'Plans',                 icon: BookOpen,        path: '/admin/plans',        roles: ['admin'] },
-  { key: 'templates',   label: 'Quotation Templates',   icon: FileText,        path: '/admin/templates',    roles: ['admin', 'staff'] },
-  { key: 'subs',        label: 'Subscriptions',         icon: RefreshCw,       path: '/admin/subscriptions',roles: ['admin', 'staff'] },
-  { key: 'invoices',    label: 'Invoices',              icon: Receipt,         path: '/admin/invoices',     roles: ['admin', 'staff'] },
-  { key: 'payments',    label: 'Payments',              icon: CreditCard,      path: '/admin/payments',     roles: ['admin', 'staff'] },
-  { key: 'overdue',     label: 'Overdue',               icon: AlertCircle,     path: '/admin/overdue',      roles: ['admin', 'staff'] },
-  { key: 'taxes',       label: 'Taxes',                 icon: Tag,             path: '/admin/taxes',        roles: ['admin'] },
-  { key: 'discounts',   label: 'Discounts',             icon: Percent,         path: '/admin/discounts',    roles: ['admin'] },
-  { key: 'reports',     label: 'Reports',               icon: BarChart3,       path: '/admin/reports',      roles: ['admin', 'staff'] },
-  { key: 'staff',       label: 'Staff Management',      icon: UserCog,         path: '/admin/staff',        roles: ['admin'] },
+  { key: 'dashboard',  label: 'Dashboard',          icon: LayoutDashboard, path: '/admin/dashboard',     roles: ['admin', 'staff'] },
+  { key: 'customers',  label: 'Customers',           icon: Users,           path: '/admin/customers',     roles: ['admin', 'staff'] },
+  { key: 'products',   label: 'Products',            icon: Package,         path: '/admin/products',      roles: ['admin'] },
+  { key: 'plans',      label: 'Plans',               icon: BookOpen,        path: '/admin/plans',         roles: ['admin'] },
+  { key: 'templates',  label: 'Quotation Templates', icon: FileText,        path: '/admin/templates',     roles: ['admin', 'staff'] },
+  { key: 'subs',       label: 'Subscriptions',       icon: RefreshCw,       path: '/admin/subscriptions', roles: ['admin', 'staff'] },
+  { key: 'invoices',   label: 'Invoices',            icon: Receipt,         path: '/admin/invoices',      roles: ['admin', 'staff'] },
+  { key: 'payments',   label: 'Payments',            icon: CreditCard,      path: '/admin/payments',      roles: ['admin', 'staff'] },
+  { key: 'overdue',    label: 'Overdue',             icon: AlertCircle,     path: '/admin/overdue',       roles: ['admin', 'staff'] },
+  { key: 'taxes',      label: 'Taxes',               icon: Tag,             path: '/admin/taxes',         roles: ['admin'] },
+  { key: 'discounts',  label: 'Discounts',           icon: Percent,         path: '/admin/discounts',     roles: ['admin'] },
+  { key: 'reports',    label: 'Reports',             icon: BarChart3,       path: '/admin/reports',       roles: ['admin', 'staff'] },
+  { key: 'staff',      label: 'Staff Management',    icon: UserCog,         path: '/admin/staff',         roles: ['admin'] },
 ];
 
-function SidebarContent({ role, onClose }) {
+function SidebarContent({ role, user, onClose, onLogout }) {
   const nav = ALL_NAV.filter((item) => item.roles.includes(role));
 
   return (
@@ -72,15 +72,19 @@ function SidebarContent({ role, onClose }) {
         ))}
       </nav>
 
-      {/* Bottom */}
+      {/* User + Logout */}
       <div className="border-t border-white/10 px-4 py-4">
         <div className="flex items-center gap-3">
-          <Avatar name="Deepa Nambiar" size="sm" />
+          <Avatar name={user?.name || 'User'} size="sm" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">Deepa Nambiar</p>
-            <p className="text-xs text-white/40 truncate">deepa@brightloop.io</p>
+            <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
+            <p className="text-xs text-white/40 truncate">{user?.email || ''}</p>
           </div>
-          <button className="p-1.5 text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/10">
+          <button
+            onClick={onLogout}
+            title="Sign out"
+            className="p-1.5 text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+          >
             <LogOut size={15} />
           </button>
         </div>
@@ -100,14 +104,20 @@ function BrandLogo() {
 }
 
 export default function AdminLayout() {
-  const { role } = useRole();
+  const { role, user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div className="flex h-screen bg-cream overflow-hidden">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-60 flex-shrink-0">
-        <SidebarContent role={role} />
+        <SidebarContent role={role} user={user} onLogout={handleLogout} />
       </aside>
 
       {/* Mobile drawer */}
@@ -115,7 +125,7 @@ export default function AdminLayout() {
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <aside className="absolute left-0 top-0 h-full w-64 z-50">
-            <SidebarContent role={role} onClose={() => setSidebarOpen(false)} />
+            <SidebarContent role={role} user={user} onClose={() => setSidebarOpen(false)} onLogout={handleLogout} />
           </aside>
         </div>
       )}
@@ -138,8 +148,15 @@ export default function AdminLayout() {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-coral rounded-full" />
             </button>
             <div className="flex items-center gap-2 pl-2 border-l border-border">
-              <Avatar name="Deepa Nambiar" size="sm" />
-              <ChevronDown size={14} className="text-ink-soft" />
+              <Avatar name={user?.name || 'User'} size="sm" />
+              <span className="text-sm font-medium text-ink hidden sm:block">{user?.name || 'User'}</span>
+              <button
+                onClick={handleLogout}
+                title="Sign out"
+                className="ml-1 p-1.5 text-ink-soft hover:text-coral transition-colors rounded-lg hover:bg-coral/5"
+              >
+                <LogOut size={15} />
+              </button>
             </div>
           </div>
         </header>

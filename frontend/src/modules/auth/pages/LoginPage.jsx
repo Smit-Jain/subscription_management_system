@@ -1,28 +1,42 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { login } from '../services/auth.service';
+import { useAuth } from '../../../context/RoleContext';
 import { useToast } from '../../../context/ToastContext';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const toast = useToast();
+  const [showPw,   setShowPw]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const toast     = useToast();
+  const { saveAuth } = useAuth();
+
+  // After login go back to the page they tried to visit, else role-based default
+  const from = location.state?.from?.pathname;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO(A): Add real validation and JWT storage
     setLoading(true);
     try {
-      await login(email, password);
-      toast.success('Signed in successfully!');
-      navigate('/admin/dashboard');
-    } catch {
-      toast.error('Invalid credentials. Please try again.');
+      const result = await login(email, password);
+      const { token, user } = result.data;
+
+      // Save into AuthContext so PrivateRoute and layouts pick it up instantly
+      saveAuth(token, user);
+
+      toast.success(`Welcome back, ${user.name}!`);
+
+      // Role-based redirect
+      const role = user.role?.toLowerCase();
+      const dest  = from || (role === 'customer' ? '/customer/subscriptions' : '/admin/dashboard');
+      navigate(dest, { replace: true });
+    } catch (err) {
+      toast.error(err.message || 'Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
     }

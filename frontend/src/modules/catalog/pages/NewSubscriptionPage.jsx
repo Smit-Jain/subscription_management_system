@@ -4,13 +4,12 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../../../components/ui/PageHeader';
 import { Button } from '../../../components/ui/Button';
 import { Input, Select } from '../../../components/ui/FormFields';
-import { getCustomers, getPlans, getTemplates, saveSubscription } from '../services/catalog.service';
-import { mockProducts } from '../../../mock/products';
+import { getCustomers, getPlans, getTemplates, getProducts, saveSubscription } from '../services/catalog.service';
 import { formatCurrency } from '../../../utils/index';
 import { useToast } from '../../../context/ToastContext';
 
 const BLANK = {
-  customerId: '', plan: 'Growth', startDate: '', expiryDate: '',
+  customerId: '', planId: '', startDate: '', expiryDate: '',
   paymentTerms: 'Net 30', templateId: '',
   lines: [],
 };
@@ -21,13 +20,18 @@ export default function NewSubscriptionPage() {
   const [customers, setCustomers] = useState([]);
   const [plans, setPlans] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [products, setProducts] = useState([]);
   const [form, setForm] = useState(BLANK);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // TODO(B): Replace with real API
-    Promise.all([getCustomers(), getPlans(), getTemplates()]).then(([c, p, t]) => {
-      setCustomers(c); setPlans(p); setTemplates(t);
+    Promise.all([getCustomers(), getPlans(), getTemplates(), getProducts()]).then(([c, p, t, pr]) => {
+      setCustomers(c);
+      setPlans(p);
+      if (p.length > 0) setForm((f) => ({ ...f, planId: p[0].id }));
+      setTemplates(t);
+      setProducts(pr);
     });
   }, []);
 
@@ -37,20 +41,31 @@ export default function NewSubscriptionPage() {
     if (!templateId) return;
     const tpl = templates.find((t) => t.id === templateId);
     if (tpl) {
+      const matchedPlan = plans.find((p) => p.name === tpl.plan);
       setForm((f) => ({
         ...f,
         templateId,
-        plan: tpl.plan,
-        lines: tpl.lines.map((l) => ({ ...l, tax: 18, amount: l.qty * l.unitPrice * 1.18 })),
+        planId: matchedPlan?.id || f.planId,
+        lines: tpl.lines.map((l) => ({
+          productId: l.productId,
+          product:   l.product,
+          qty:       l.qty,
+          unitPrice: l.unitPrice,
+          tax:       18,
+          amount:    l.qty * l.unitPrice * 1.18,
+        })),
       }));
     }
   };
 
-  const addLine = () =>
+  const addLine = () => {
+    const first = products[0];
+    if (!first) return;
     setForm((f) => ({
       ...f,
-      lines: [...f.lines, { product: mockProducts[0].name, qty: 1, unitPrice: mockProducts[0].salesPrice, tax: 18, amount: mockProducts[0].salesPrice * 1.18 }],
+      lines: [...f.lines, { productId: first.id, product: first.name, qty: 1, unitPrice: first.salesPrice, tax: 18, amount: first.salesPrice * 1.18 }],
     }));
+  };
 
   const setLine = (idx, key, val) =>
     setForm((f) => {
@@ -69,15 +84,25 @@ export default function NewSubscriptionPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO(B): Validate dates, check customer credit, trigger invoice generation
+    setError('');
+
+    // Client-side validation
+    if (!form.customerId) { setError('Please select a customer.'); return; }
+    if (!form.planId)     { setError('Please select a plan.'); return; }
+    if (!form.startDate)  { setError('Start date is required.'); return; }
+    if (!form.expiryDate) { setError('Expiry date is required.'); return; }
+    if (new Date(form.expiryDate) <= new Date(form.startDate)) {
+      setError('Expiry date must be after start date.'); return;
+    }
+    if (form.lines.length === 0) { setError('Add at least one order line.'); return; }
+
     setLoading(true);
     try {
-      const customer = customers.find((c) => c.id === form.customerId);
-      await saveSubscription({ ...form, customerName: customer?.name || '', total, status: 'draft' });
+      await saveSubscription(form);
       toast.success('Subscription created successfully.');
       navigate('/admin/subscriptions');
-    } catch {
-      toast.error('Failed to create subscription.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to create subscription.');
     } finally {
       setLoading(false);
     }
@@ -92,6 +117,9 @@ export default function NewSubscriptionPage() {
       <PageHeader title="New Subscription" subtitle="Create a new customer subscription" />
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="bg-coral/10 border border-coral/30 text-coral text-sm rounded-xl px-4 py-3">{error}</div>
+        )}
         {/* Core details */}
         <div className="bg-paper rounded-2xl border border-border p-5">
           <h3 className="font-heading font-semibold text-ink mb-4">Subscription Details</h3>
@@ -101,8 +129,9 @@ export default function NewSubscriptionPage() {
               {customers.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.company}</option>)}
             </Select>
 
-            <Select label="Plan" value={form.plan} onChange={set('plan')}>
-              {plans.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+            <Select label="Plan" value={form.planId} onChange={set('planId')}>
+              <option value="">— Select plan —</option>
+              {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </Select>
 
             <Input label="Start Date" type="date" value={form.startDate} onChange={set('startDate')} required />
@@ -148,14 +177,16 @@ export default function NewSubscriptionPage() {
                         <td className="px-2 py-2">
                           <select
                             className="bg-cream border border-border rounded-lg px-2 py-1.5 text-xs w-48 focus:outline-none focus:ring-1 focus:ring-forest/30"
-                            value={line.product}
+                            value={line.productId}
                             onChange={(e) => {
-                              const prod = mockProducts.find((p) => p.name === e.target.value);
-                              setLine(idx, 'product', e.target.value);
-                              if (prod) setLine(idx, 'unitPrice', prod.salesPrice);
+                              const prod = products.find((p) => p.id === e.target.value);
+                              if (!prod) return;
+                              setLine(idx, 'productId', prod.id);
+                              setLine(idx, 'product',   prod.name);
+                              setLine(idx, 'unitPrice', prod.salesPrice);
                             }}
                           >
-                            {mockProducts.map((p) => <option key={p.id}>{p.name}</option>)}
+                            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
                         </td>
                         <td className="px-2 py-2">

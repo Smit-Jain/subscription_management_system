@@ -27,11 +27,16 @@ const PLAN_OPTIONS = ['Starter', 'Growth', 'Enterprise', 'Annual Starter', 'Annu
 export default function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [filters, setFilters] = useState({ status: '', plan: '', customer: '' });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    // TODO(B): Replace with real API
-    getSubscriptions().then(setSubscriptions);
+    setLoading(true);
+    getSubscriptions()
+      .then(setSubscriptions)
+      .catch(() => setError('Failed to load subscriptions.'))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleFilterChange = (key, val) => setFilters((f) => ({ ...f, [key]: val }));

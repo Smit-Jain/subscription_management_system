@@ -1,6 +1,16 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/RoleContext';
 
 export default function PublicLayout() {
+  const { isAuthenticated, role } = useAuth();
+  const { pathname } = useLocation();
+
+  // If already logged in and trying to visit /login or /signup, go to dashboard
+  if (isAuthenticated && (pathname === '/login' || pathname === '/signup')) {
+    const dest = role === 'customer' ? '/customer/subscriptions' : '/admin/dashboard';
+    return <Navigate to={dest} replace />;
+  }
+
   return (
     <div className="min-h-screen bg-cream">
       {/* Minimal public nav */}

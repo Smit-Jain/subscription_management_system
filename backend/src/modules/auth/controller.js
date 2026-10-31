@@ -1,7 +1,7 @@
 // ─── Auth Controller ─────────────────────────────────────────────────────────
 import * as authService from './service.js';
-import { success, created } from '../../../utils/response.js';
-import { parsePagination, paginated } from '../../../utils/pagination.js';
+import { success, created } from '../../utils/response.js';
+import { parsePagination, paginated } from '../../utils/pagination.js';
 
 // ── Auth ──
 

@@ -2,11 +2,11 @@
 // Business logic for authentication, users, staff, and customers.
 // ─────────────────────────────────────────────────────────────────────────────
 import bcrypt from 'bcryptjs';
-import prisma from '../../../config/prisma.js';
-import env from '../../../config/env.js';
-import AppError from '../../../utils/AppError.js';
-import { signJwt, generateToken, hashToken } from '../../../utils/tokens.js';
-import { sendEmail, emailTemplate } from '../../../utils/email.js';
+import prisma from '../../config/prisma.js';
+import env from '../../config/env.js';
+import AppError from '../../utils/AppError.js';
+import { signJwt, generateToken, hashToken } from '../../utils/tokens.js';
+import { sendEmail, emailTemplate } from '../../utils/email.js';
 
 // ── User select without passwordHash ──
 const safeUserSelect = {

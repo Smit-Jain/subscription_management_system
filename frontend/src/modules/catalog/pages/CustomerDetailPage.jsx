@@ -6,8 +6,6 @@ import { StatusBadge } from '../../../components/ui/Badge';
 import { Avatar } from '../../../components/ui/Avatar';
 import { DataTable } from '../../../components/ui/DataTable';
 import { getCustomer } from '../services/catalog.service';
-import { mockSubscriptions } from '../../../mock/subscriptions';
-import { mockInvoices } from '../../../mock/billing';
 import { formatDate, formatCurrency } from '../../../utils/index';
 
 export default function CustomerDetailPage() {
@@ -16,7 +14,6 @@ export default function CustomerDetailPage() {
   const [customer, setCustomer] = useState(null);
 
   useEffect(() => {
-    // TODO(B): Replace with real API
     getCustomer(id).then(setCustomer);
   }, [id]);
 
@@ -28,8 +25,9 @@ export default function CustomerDetailPage() {
     );
   }
 
-  const subs = mockSubscriptions.filter((s) => s.customerId === id);
-  const invs = mockInvoices.filter((i) => i.customerId === id);
+  // Subscriptions and invoices come embedded from the API (getCustomer)
+  const subs = customer.subscriptions || [];
+  const invs = [];  // TODO(C): Replace with getCustomerInvoices(id) from Member C's billing API
 
   const subColumns = [
     { key: 'id',     label: 'ID',     render: (v) => <span className="font-mono text-xs">{v}</span> },

@@ -1,17 +1,45 @@
 // ============================================================
 // Auth Services — Member A
-// TODO(A): Replace mock returns with real API calls:
-//   POST /auth/login, POST /auth/signup, POST /auth/forgot-password,
+// TODO(A): Replace remaining mock returns with real API calls:
+//   POST /auth/signup, POST /auth/forgot-password,
 //   POST /auth/reset-password, GET /staff, POST /staff, DELETE /staff/:id
 // ============================================================
 import { mockStaff } from '../../../mock/users';
 
+const API       = import.meta.env.VITE_API_URL;
+const TOKEN_KEY = 'brightloop_token';
+const USER_KEY  = 'brightloop_user';
+
+// ── Real login → stores JWT so all modules can attach it ──────────────────────
 export async function login(email, password) {
-  // TODO(A): Replace with: return fetch(`${import.meta.env.VITE_API_URL}/auth/login`, { method: 'POST', body: JSON.stringify({ email, password }) })
-  await new Promise((r) => setTimeout(r, 600));
-  return { success: true, token: 'mock-jwt-token', user: { id: 's1', name: 'Deepa Nambiar', role: 'admin' } };
+  const res  = await fetch(`${API}/auth/login`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ email, password }),
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) throw new Error(json.message || 'Login failed');
+
+  localStorage.setItem(TOKEN_KEY, json.data.token);
+  localStorage.setItem(USER_KEY,  JSON.stringify(json.data.user));
+  return json;
 }
 
+export function logout() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+// Helpers used by catalog, billing and finance service files
+export function getStoredToken() {
+  return localStorage.getItem(TOKEN_KEY) || '';
+}
+
+export function getStoredUser() {
+  try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; }
+}
+
+// ── Remaining stubs (Member A owns these) ────────────────────────────────────
 export async function signup(data) {
   // TODO(A): Replace with real signup API
   await new Promise((r) => setTimeout(r, 600));

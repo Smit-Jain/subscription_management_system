@@ -13,7 +13,7 @@ const app = express();
 // ── Security ──
 app.use(helmet());
 app.use(cors({
-  origin: env.frontendUrl,
+  origin: [env.frontendUrl, 'http://localhost:5173', 'http://localhost:5174'],
   credentials: true,
 }));
 
