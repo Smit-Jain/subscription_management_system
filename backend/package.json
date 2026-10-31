@@ -27,10 +27,10 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "nodemailer": "^6.9.15",
-    "zod": "^3.23.8"
+    "nodemailer": "^10.3.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "prisma": "^5.22.0"
+    "prisma": "^7.10.1"
   }
 }
