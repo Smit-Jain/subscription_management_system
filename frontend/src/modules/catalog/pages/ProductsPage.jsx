@@ -21,7 +21,6 @@ export default function ProductsPage() {
   const toast = useToast();
 
   useEffect(() => {
-    // TODO(B): Replace with real API
     getProducts().then(setProducts);
   }, []);
 
@@ -30,7 +29,13 @@ export default function ProductsPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    // TODO(B): Add price validation — salesPrice must be > costPrice
+    // Validate: salesPrice must be >= costPrice
+    const sp = parseFloat(editItem.salesPrice) || 0;
+    const cp = parseFloat(editItem.costPrice)  || 0;
+    if (sp < cp) {
+      toast.error('Sales price must be greater than or equal to cost price.');
+      return;
+    }
     setLoading(true);
     try {
       const saved = await saveProduct(editItem);
@@ -40,8 +45,8 @@ export default function ProductsPage() {
       });
       toast.success(editItem.id ? 'Product updated.' : 'Product added.');
       setEditItem(null);
-    } catch {
-      toast.error('Failed to save product.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to save product.');
     } finally {
       setLoading(false);
     }

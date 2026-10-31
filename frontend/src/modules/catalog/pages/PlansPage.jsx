@@ -26,13 +26,18 @@ export default function PlansPage() {
   const toast = useToast();
 
   useEffect(() => {
-    // TODO(B): Replace with real API
     getPlans().then(setPlans);
   }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
-    // TODO(B): Validate that availableTo is after availableFrom
+    // Validate that availableTo is after availableFrom
+    if (editItem.availableFrom && editItem.availableTo) {
+      if (new Date(editItem.availableTo) <= new Date(editItem.availableFrom)) {
+        toast.error('"Available To" date must be after "Available From" date.');
+        return;
+      }
+    }
     setLoading(true);
     try {
       const saved = await savePlan(editItem);
@@ -42,6 +47,8 @@ export default function PlansPage() {
       });
       toast.success(editItem.id ? 'Plan updated.' : 'Plan created.');
       setEditItem(null);
+    } catch (err) {
+      toast.error(err.message || 'Failed to save plan.');
     } finally {
       setLoading(false);
     }

@@ -14,7 +14,6 @@ export default function CustomersPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // TODO(B): Replace with real API
     getCustomers().then(setCustomers);
   }, []);
 

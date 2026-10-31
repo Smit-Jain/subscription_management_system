@@ -6,9 +6,8 @@ import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { Input, Select } from '../../../components/ui/FormFields';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
-import { getTemplates, saveTemplate, getPlans } from '../services/catalog.service';
+import { getTemplates, saveTemplate, deleteTemplate, getPlans, getProducts } from '../services/catalog.service';
 import { useToast } from '../../../context/ToastContext';
-import { mockProducts } from '../../../mock/products';
 import { formatCurrency } from '../../../utils/index';
 
 const BLANK = { name: '', plan: 'Starter', validityDays: 30, lines: [] };
@@ -16,39 +15,64 @@ const BLANK = { name: '', plan: 'Starter', validityDays: 30, lines: [] };
 export default function QuotationTemplatesPage() {
   const [templates, setTemplates] = useState([]);
   const [plans, setPlans] = useState([]);
+  const [products, setProducts] = useState([]);
   const [editItem, setEditItem] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
-    // TODO(B): Replace with real API
-    Promise.all([getTemplates(), getPlans()]).then(([t, p]) => { setTemplates(t); setPlans(p); });
+    Promise.all([getTemplates(), getPlans(), getProducts()]).then(([t, p, pr]) => {
+      setTemplates(t);
+      setPlans(p);
+      setProducts(pr);
+    });
   }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const saved = await saveTemplate(editItem);
+      // Resolve plan name -> planId before saving
+      const planObj = plans.find((p) => p.name === editItem.plan || p.id === editItem.planId);
+      const payload = { ...editItem, planId: planObj?.id || editItem.planId || null };
+      const saved = await saveTemplate(payload);
       setTemplates((prev) => {
         const idx = prev.findIndex((t) => t.id === saved.id);
         return idx >= 0 ? prev.map((t) => t.id === saved.id ? saved : t) : [saved, ...prev];
       });
       toast.success(editItem.id ? 'Template updated.' : 'Template created.');
       setEditItem(null);
+    } catch (err) {
+      toast.error(err.message || 'Failed to save template.');
     } finally {
       setLoading(false);
     }
   };
 
-  const addLine = () => setEditItem((p) => ({ ...p, lines: [...p.lines, { product: mockProducts[0].name, qty: 1, unitPrice: mockProducts[0].salesPrice }] }));
+  const addLine = () => {
+    const first = products[0];
+    if (!first) return;
+    setEditItem((p) => ({ ...p, lines: [...p.lines, { productId: first.id, product: first.name, qty: 1, unitPrice: first.salesPrice }] }));
+  };
 
   const setLine = (idx, key, val) => setEditItem((p) => {
     const lines = [...p.lines];
     lines[idx] = { ...lines[idx], [key]: key === 'qty' || key === 'unitPrice' ? parseFloat(val) || 0 : val };
     return { ...p, lines };
   });
+
+  const handleDelete = async () => {
+    try {
+      await deleteTemplate(deleteId);
+      setTemplates((p) => p.filter((t) => t.id !== deleteId));
+      toast.success('Template deleted.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete template.');
+    } finally {
+      setDeleteId(null);
+    }
+  };
 
   const removeLine = (idx) => setEditItem((p) => ({ ...p, lines: p.lines.filter((_, i) => i !== idx) }));
 
@@ -126,14 +150,17 @@ export default function QuotationTemplatesPage() {
                         <td className="px-2 py-1.5">
                           <select
                             className="bg-cream border border-border rounded-lg px-2 py-1.5 text-xs w-48 focus:outline-none focus:ring-1 focus:ring-forest/30"
-                            value={line.product}
+                            value={line.productId}
                             onChange={(e) => {
-                              const prod = mockProducts.find((p) => p.name === e.target.value);
-                              setLine(idx, 'product', e.target.value);
-                              if (prod) setLine(idx, 'unitPrice', prod.salesPrice);
+                              const prod = products.find((p) => p.id === e.target.value);
+                              if (!prod) return;
+                              const idx2 = editItem.lines.findIndex((l) => l === line);
+                              setLine(idx2, 'productId', prod.id);
+                              setLine(idx2, 'product',   prod.name);
+                              setLine(idx2, 'unitPrice', prod.salesPrice);
                             }}
                           >
-                            {mockProducts.map((p) => <option key={p.id}>{p.name}</option>)}
+                            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
                         </td>
                         <td className="px-2 py-1.5">
@@ -166,7 +193,7 @@ export default function QuotationTemplatesPage() {
       </Modal>
 
       <ConfirmDialog
-        open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={() => { setTemplates((p) => p.filter((t) => t.id !== deleteId)); setDeleteId(null); toast.success('Template deleted.'); }}
+        open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete}
         title="Delete Template" message="Are you sure you want to delete this quotation template?"
       />
     </div>

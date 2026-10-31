@@ -1,8 +1,8 @@
-import { NavLink, Outlet, Link } from 'react-router-dom';
-import { RefreshCw, Receipt, CreditCard, User, Bell, ChevronDown, Menu, X } from 'lucide-react';
+import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
+import { RefreshCw, Receipt, CreditCard, User, Bell, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Avatar } from '../components/ui/Avatar';
-import { mockCurrentCustomer } from '../mock/users';
+import { useAuth } from '../context/RoleContext';
 
 const CUSTOMER_NAV = [
   { label: 'My Subscriptions', path: '/customer/subscriptions', icon: RefreshCw },
@@ -13,7 +13,13 @@ const CUSTOMER_NAV = [
 
 export default function CustomerLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const customer = mockCurrentCustomer;
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-cream">
@@ -54,12 +60,18 @@ export default function CustomerLayout() {
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-coral rounded-full" />
               </button>
               <div className="hidden md:flex items-center gap-2 pl-2 border-l border-border">
-                <Avatar name={customer.name} size="sm" />
+                <Avatar name={user?.name || 'Customer'} size="sm" />
                 <div>
-                  <p className="text-xs font-semibold text-ink leading-none">{customer.name}</p>
-                  <p className="text-[10px] text-ink-soft">{customer.company}</p>
+                  <p className="text-xs font-semibold text-ink leading-none">{user?.name || 'Customer'}</p>
+                  <p className="text-[10px] text-ink-soft">{user?.company || user?.email || ''}</p>
                 </div>
-                <ChevronDown size={13} className="text-ink-soft" />
+                <button
+                  onClick={handleLogout}
+                  title="Sign out"
+                  className="ml-1 p-1.5 text-ink-soft hover:text-coral transition-colors rounded-lg hover:bg-coral/5"
+                >
+                  <LogOut size={14} />
+                </button>
               </div>
               <button
                 className="p-2 rounded-xl hover:bg-cream text-ink-soft md:hidden"
@@ -87,6 +99,13 @@ export default function CustomerLayout() {
                   {item.label}
                 </NavLink>
               ))}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium text-coral hover:bg-coral/5 transition-all"
+              >
+                <LogOut size={16} />
+                Sign out
+              </button>
             </div>
           )}
         </div>
