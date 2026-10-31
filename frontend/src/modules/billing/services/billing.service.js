@@ -1,11 +1,7 @@
 // ============================================================
 // Billing Services — Member C
-// Real backend API calls replacing mock returns.
-// Preserves exact function signatures and contracts so all existing
-// UI components work seamlessly without modification.
+// Real backend API calls for taxes, discounts, and invoices.
 // ============================================================
-import { mockInvoices, mockTaxes, mockDiscounts } from '../../../mock/billing';
-
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 function getToken() {
@@ -18,6 +14,7 @@ async function api(path, options = {}) {
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
     },
     ...options,
   });
@@ -40,8 +37,8 @@ export async function getTaxes() {
     const data = await api('/billing/taxes');
     return Array.isArray(data) ? data : data.items || [];
   } catch (err) {
-    console.warn('[Billing Service] getTaxes API error, falling back to mock:', err.message);
-    return mockTaxes;
+    console.error('getTaxes error:', err.message);
+    return [];
   }
 }
 
@@ -74,8 +71,8 @@ export async function getDiscounts() {
     const data = await api('/billing/discounts');
     return Array.isArray(data) ? data : data.items || [];
   } catch (err) {
-    console.warn('[Billing Service] getDiscounts API error, falling back to mock:', err.message);
-    return mockDiscounts;
+    console.error('getDiscounts error:', err.message);
+    return [];
   }
 }
 
@@ -113,21 +110,19 @@ export async function getInvoices(params = {}) {
 
     const queryStr = qs.toString() ? `?${qs.toString()}` : '';
     const data = await api(`/billing/invoices${queryStr}`);
-    const items = Array.isArray(data) ? data : data.items || [];
-    return items.length > 0 ? items : mockInvoices;
+    return Array.isArray(data) ? data : data.items || [];
   } catch (err) {
-    console.warn('[Billing Service] getInvoices API error, falling back to mock:', err.message);
-    return mockInvoices;
+    console.error('getInvoices error:', err.message);
+    return [];
   }
 }
 
 export async function getInvoice(id) {
   try {
-    const data = await api(`/billing/invoices/${id}`);
-    return data;
+    return await api(`/billing/invoices/${id}`);
   } catch (err) {
-    console.warn('[Billing Service] getInvoice API error, falling back to mock:', err.message);
-    return mockInvoices.find((i) => i.id === id) || null;
+    console.error('getInvoice error:', err.message);
+    return null;
   }
 }
 
@@ -156,5 +151,6 @@ export async function sendInvoice(id) {
 }
 
 export function getInvoicePdfUrl(id) {
-  return `${BASE}/billing/invoices/${id}/pdf`;
+  const token = getToken();
+  return `${BASE}/billing/invoices/${id}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 }

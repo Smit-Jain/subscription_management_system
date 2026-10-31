@@ -1,32 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '../../../../components/ui/PageHeader';
 import { Button } from '../../../../components/ui/Button';
 import { Input, Textarea } from '../../../../components/ui/FormFields';
 import { Avatar } from '../../../../components/ui/Avatar';
-import { mockCurrentCustomer } from '../../../../mock/users';
+import { getCustomerProfile, updateCustomerProfile } from '../../services/finance.service';
 import { useToast } from '../../../../context/ToastContext';
+import { useAuth } from '../../../../context/RoleContext';
 
 export default function ProfilePage() {
-  const customer = mockCurrentCustomer;
+  const { user } = useAuth();
   const toast = useToast();
+
   const [form, setForm] = useState({
-    name: customer.name,
-    email: customer.email,
-    phone: customer.phone,
-    company: customer.company,
-    address: customer.address,
+    name:    user?.name || '',
+    email:   user?.email || '',
+    phone:   user?.phone || '',
+    company: user?.company || '',
+    address: '12 MG Road, Bengaluru 560001',
+    plan:    'Growth',
   });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    getCustomerProfile(user?.id).then((profile) => {
+      if (profile) {
+        setForm((prev) => ({
+          ...prev,
+          name:    profile.name || prev.name,
+          email:   profile.email || prev.email,
+          phone:   profile.phone || prev.phone,
+          company: profile.company || prev.company,
+          address: profile.address || prev.address,
+          plan:    profile.plan || prev.plan,
+        }));
+      }
+    });
+  }, [user?.id]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSave = async (e) => {
     e.preventDefault();
-    // TODO(D): PUT /customers/:id with updated profile data
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setLoading(false);
-    toast.success('Profile updated successfully.');
+    try {
+      await updateCustomerProfile({
+        id:      user?.id,
+        name:    form.name,
+        email:   form.email,
+        phone:   form.phone,
+        company: form.company,
+        address: form.address,
+      });
+      toast.success('Profile updated successfully.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update profile.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -35,11 +65,13 @@ export default function ProfilePage() {
 
       <div className="bg-paper rounded-2xl border border-border p-6">
         <div className="flex items-center gap-5 mb-7">
-          <Avatar name={customer.name} size="xl" />
+          <Avatar name={form.name || 'User'} size="xl" />
           <div>
-            <h2 className="font-heading font-bold text-xl text-ink">{customer.name}</h2>
-            <p className="text-sm text-ink-soft">{customer.company}</p>
-            <p className="text-xs text-ink-soft mt-1">Customer since {new Date(customer.joined).getFullYear()}</p>
+            <h2 className="font-heading font-bold text-xl text-ink">{form.name || 'Account'}</h2>
+            <p className="text-sm text-ink-soft">{form.company || 'Customer Account'}</p>
+            <p className="text-xs text-ink-soft mt-1">
+              Registered account · Brightloop Software
+            </p>
           </div>
         </div>
 
@@ -62,7 +94,7 @@ export default function ProfilePage() {
       <div className="bg-forest-light rounded-2xl border border-mint/30 p-5">
         <p className="text-xs font-semibold text-ink-soft uppercase tracking-wide mb-2">Current Plan</p>
         <div className="flex items-center justify-between">
-          <p className="font-heading font-bold text-2xl text-forest">{customer.plan}</p>
+          <p className="font-heading font-bold text-2xl text-forest">{form.plan}</p>
           <Button variant="outline" size="sm">Upgrade Plan</Button>
         </div>
         <p className="text-xs text-forest/70 mt-1">Contact support to change or upgrade your subscription plan.</p>

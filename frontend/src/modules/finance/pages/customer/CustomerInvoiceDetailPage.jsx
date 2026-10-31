@@ -3,22 +3,38 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Printer } from 'lucide-react';
 import { StatusBadge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
-import { getCustomerInvoices } from '../../services/finance.service';
-import { mockCurrentCustomer } from '../../../../mock/users';
+import { getCustomerInvoice, getCustomerInvoices } from '../../services/finance.service';
 import { formatDate, formatCurrency } from '../../../../utils/index';
 import { useToast } from '../../../../context/ToastContext';
+import { useAuth } from '../../../../context/RoleContext';
+
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 export default function CustomerInvoiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+
   const [invoice, setInvoice] = useState(null);
 
   useEffect(() => {
-    getCustomerInvoices(mockCurrentCustomer.id).then((list) => {
-      setInvoice(list.find((i) => i.id === id) || null);
+    getCustomerInvoice(id).then((found) => {
+      if (found) {
+        setInvoice(found);
+      } else if (user?.id) {
+        getCustomerInvoices(user.id).then((list) => {
+          setInvoice(list.find((i) => i.id === id) || null);
+        });
+      }
     });
-  }, [id]);
+  }, [id, user?.id]);
+
+  const handleDownloadPdf = () => {
+    toast.success('Opening invoice PDF…');
+    const token = localStorage.getItem('brightloop_token') || '';
+    window.open(`${BASE}/billing/invoices/${invoice.id}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`, '_blank');
+  };
 
   if (!invoice) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-6 h-6 border-2 border-forest border-t-transparent rounded-full" /></div>;
 
@@ -34,7 +50,7 @@ export default function CustomerInvoiceDetailPage() {
           <StatusBadge status={invoice.status} />
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" icon={Download} onClick={() => toast.success('PDF downloading…')}>Download PDF</Button>
+          <Button variant="ghost" icon={Download} onClick={handleDownloadPdf}>Download PDF</Button>
           <Button variant="ghost" icon={Printer} onClick={() => window.print()}>Print</Button>
         </div>
       </div>
@@ -55,7 +71,7 @@ export default function CustomerInvoiceDetailPage() {
 
         <div className="bg-cream rounded-xl p-4 mb-6 border border-border">
           <p className="text-xs font-semibold text-ink-soft uppercase mb-1">Bill To</p>
-          <p className="font-semibold text-ink">{invoice.customerName}</p>
+          <p className="font-semibold text-ink">{invoice.customerName || user?.name || 'Customer'}</p>
         </div>
 
         <table className="w-full text-sm mb-6">
@@ -69,8 +85,8 @@ export default function CustomerInvoiceDetailPage() {
           <tbody>
             {(invoice.lines?.length ? invoice.lines : [{ product: 'Subscription Services', qty: 1, unitPrice: invoice.subtotal, amount: invoice.subtotal }]).map((l, i) => (
               <tr key={i} className="border-b border-border/40">
-                <td className="py-3 font-medium">{l.product}</td>
-                <td className="py-3 text-ink-soft">{l.qty}</td>
+                <td className="py-3 font-medium">{l.product || l.description}</td>
+                <td className="py-3 text-ink-soft">{l.qty || l.quantity}</td>
                 <td className="py-3 text-ink-soft">{formatCurrency(l.unitPrice)}</td>
                 <td className="py-3 font-semibold text-right">{formatCurrency(l.amount || l.unitPrice)}</td>
               </tr>
@@ -81,7 +97,7 @@ export default function CustomerInvoiceDetailPage() {
         <div className="flex justify-end">
           <div className="w-48 space-y-1.5 text-sm">
             <div className="flex justify-between text-ink-soft"><span>Subtotal</span><span>{formatCurrency(invoice.subtotal)}</span></div>
-            <div className="flex justify-between text-ink-soft"><span>Tax</span><span>{formatCurrency(invoice.tax)}</span></div>
+            <div className="flex justify-between text-ink-soft"><span>Tax</span><span>{formatCurrency(invoice.tax || invoice.taxTotal)}</span></div>
             <div className="flex justify-between font-bold text-ink border-t border-border pt-1.5">
               <span>Total</span><span className="text-forest">{formatCurrency(invoice.total)}</span>
             </div>

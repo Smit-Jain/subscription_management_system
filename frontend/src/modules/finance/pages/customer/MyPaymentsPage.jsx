@@ -5,16 +5,20 @@ import { StatusBadge } from '../../../../components/ui/Badge';
 import { StatCard } from '../../../../components/ui/StatCard';
 import { CreditCard } from 'lucide-react';
 import { getCustomerPayments } from '../../services/finance.service';
-import { mockCurrentCustomer } from '../../../../mock/users';
 import { formatDate, formatCurrency } from '../../../../utils/index';
+import { useAuth } from '../../../../context/RoleContext';
 
 export default function MyPaymentsPage() {
   const [payments, setPayments] = useState([]);
+  const { user } = useAuth();
 
   useEffect(() => {
-    // TODO(D): Use auth token
-    getCustomerPayments(mockCurrentCustomer.id).then(setPayments);
-  }, []);
+    if (user?.id) {
+      getCustomerPayments(user.id).then(setPayments);
+    } else {
+      getCustomerPayments().then(setPayments);
+    }
+  }, [user?.id]);
 
   const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
 
