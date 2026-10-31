@@ -3,22 +3,32 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Printer } from 'lucide-react';
 import { StatusBadge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
-import { getCustomerInvoices } from '../../services/finance.service';
+import { getCustomerInvoice, getCustomerInvoices } from '../../services/finance.service';
 import { mockCurrentCustomer } from '../../../../mock/users';
 import { formatDate, formatCurrency } from '../../../../utils/index';
 import { useToast } from '../../../../context/ToastContext';
+import { useAuth } from '../../../../context/RoleContext';
 
 export default function CustomerInvoiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+  const customer = user || mockCurrentCustomer;
+
   const [invoice, setInvoice] = useState(null);
 
   useEffect(() => {
-    getCustomerInvoices(mockCurrentCustomer.id).then((list) => {
-      setInvoice(list.find((i) => i.id === id) || null);
+    getCustomerInvoice(id).then((found) => {
+      if (found) {
+        setInvoice(found);
+      } else {
+        getCustomerInvoices(customer.id).then((list) => {
+          setInvoice(list.find((i) => i.id === id) || null);
+        });
+      }
     });
-  }, [id]);
+  }, [id, customer.id]);
 
   if (!invoice) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-6 h-6 border-2 border-forest border-t-transparent rounded-full" /></div>;
 

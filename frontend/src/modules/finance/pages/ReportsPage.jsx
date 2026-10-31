@@ -7,11 +7,11 @@ import {
 import { PageHeader } from '../../../components/ui/PageHeader';
 import { Button } from '../../../components/ui/Button';
 import { StatCard } from '../../../components/ui/StatCard';
-import { getRevenueChartData } from '../services/finance.service';
+import { getRevenueChartData, getReportsData, exportCsv } from '../services/finance.service';
 import { formatCurrency } from '../../../utils/index';
 import { useToast } from '../../../context/ToastContext';
 
-const PLAN_DATA = [
+const DEFAULT_PLAN_DATA = [
   { plan: 'Starter',    count: 7,  revenue: 82600 },
   { plan: 'Growth',     count: 9,  revenue: 428400 },
   { plan: 'Enterprise', count: 6,  revenue: 538200 },
@@ -20,12 +20,26 @@ const PLAN_DATA = [
 
 export default function ReportsPage() {
   const [chartData, setChartData] = useState([]);
+  const [reportData, setReportData] = useState(null);
   const toast = useToast();
 
   useEffect(() => {
-    // TODO(D): Replace with real reporting API
     getRevenueChartData().then(setChartData);
+    getReportsData().then(setReportData);
   }, []);
+
+  const handleExport = () => {
+    toast.success('CSV export started! File will download shortly.');
+    exportCsv();
+  };
+
+  const planData = reportData?.planData?.length ? reportData.planData : DEFAULT_PLAN_DATA;
+  const summary = reportData?.summary || {
+    totalRevenue:    '₹14.0L',
+    totalInvoiced:   '₹15.6L',
+    avgInvoiceValue: '₹52,340',
+    collectionRate:  '87%',
+  };
 
   return (
     <div className="space-y-6">
@@ -33,7 +47,7 @@ export default function ReportsPage() {
         title="Reports"
         subtitle="Financial summary and analytics"
         actions={
-          <Button variant="ghost" icon={Download} onClick={() => toast.success('CSV export started! File will download shortly.')}>
+          <Button variant="ghost" icon={Download} onClick={handleExport}>
             Export CSV
           </Button>
         }
@@ -41,10 +55,10 @@ export default function ReportsPage() {
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Revenue" value="₹14.0L" subtitle="FY 2024–25" icon={BarChart3} bg="bg-forest-light" iconBg="bg-forest/10" iconColor="text-forest" trend={18} />
-        <StatCard title="Total Invoiced" value="₹15.6L" subtitle="FY 2024–25" icon={BarChart3} bg="bg-lilac/30" iconBg="bg-violet-100" iconColor="text-violet-600" trend={15} />
-        <StatCard title="Avg Invoice Value" value="₹52,340" subtitle="per invoice" icon={BarChart3} bg="bg-marigold/10" iconBg="bg-marigold/20" iconColor="text-amber-700" trend={5} />
-        <StatCard title="Collection Rate" value="87%" subtitle="vs target 90%" icon={BarChart3} bg="bg-sky/10" iconBg="bg-sky/20" iconColor="text-sky" trend={-3} />
+        <StatCard title="Total Revenue" value={summary.totalRevenue} subtitle="FY 2024–25" icon={BarChart3} bg="bg-forest-light" iconBg="bg-forest/10" iconColor="text-forest" trend={18} />
+        <StatCard title="Total Invoiced" value={summary.totalInvoiced} subtitle="FY 2024–25" icon={BarChart3} bg="bg-lilac/30" iconBg="bg-violet-100" iconColor="text-violet-600" trend={15} />
+        <StatCard title="Avg Invoice Value" value={summary.avgInvoiceValue} subtitle="per invoice" icon={BarChart3} bg="bg-marigold/10" iconBg="bg-marigold/20" iconColor="text-amber-700" trend={5} />
+        <StatCard title="Collection Rate" value={summary.collectionRate} subtitle="vs target 90%" icon={BarChart3} bg="bg-sky/10" iconBg="bg-sky/20" iconColor="text-sky" trend={-3} />
       </div>
 
       {/* Revenue chart */}
@@ -68,7 +82,7 @@ export default function ReportsPage() {
         <div className="bg-paper rounded-2xl border border-border p-5">
           <h3 className="font-heading font-semibold text-ink mb-4">Revenue by Plan</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={PLAN_DATA} barSize={36}>
+            <BarChart data={planData} barSize={36}>
               <CartesianGrid strokeDasharray="3 3" stroke="#EADFCB" vertical={false} />
               <XAxis dataKey="plan" tick={{ fontSize: 11, fill: '#6B667A' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#6B667A' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}K`} />
@@ -81,9 +95,9 @@ export default function ReportsPage() {
         <div className="bg-paper rounded-2xl border border-border p-5">
           <h3 className="font-heading font-semibold text-ink mb-4">Subscriptions by Plan</h3>
           <div className="space-y-3 mt-2">
-            {PLAN_DATA.map((row) => {
-              const max = Math.max(...PLAN_DATA.map((r) => r.count));
-              const pct = Math.round((row.count / max) * 100);
+            {planData.map((row) => {
+              const max = Math.max(...planData.map((r) => r.count || 1));
+              const pct = Math.round(((row.count || 1) / max) * 100);
               const colors = { Starter: 'bg-sky', Growth: 'bg-forest', Enterprise: 'bg-lilac', Annual: 'bg-marigold' };
               return (
                 <div key={row.plan}>

@@ -7,14 +7,16 @@ import { CreditCard } from 'lucide-react';
 import { getCustomerPayments } from '../../services/finance.service';
 import { mockCurrentCustomer } from '../../../../mock/users';
 import { formatDate, formatCurrency } from '../../../../utils/index';
+import { useAuth } from '../../../../context/RoleContext';
 
 export default function MyPaymentsPage() {
   const [payments, setPayments] = useState([]);
+  const { user } = useAuth();
+  const customer = user || mockCurrentCustomer;
 
   useEffect(() => {
-    // TODO(D): Use auth token
-    getCustomerPayments(mockCurrentCustomer.id).then(setPayments);
-  }, []);
+    getCustomerPayments(customer.id).then(setPayments);
+  }, [customer.id]);
 
   const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
 

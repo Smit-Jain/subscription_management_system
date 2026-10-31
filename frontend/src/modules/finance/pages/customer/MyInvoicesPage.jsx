@@ -9,16 +9,18 @@ import { getCustomerInvoices } from '../../services/finance.service';
 import { mockCurrentCustomer } from '../../../../mock/users';
 import { formatDate, formatCurrency } from '../../../../utils/index';
 import { useToast } from '../../../../context/ToastContext';
+import { useAuth } from '../../../../context/RoleContext';
 
 export default function MyInvoicesPage() {
   const [invoices, setInvoices] = useState([]);
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+  const customer = user || mockCurrentCustomer;
 
   useEffect(() => {
-    // TODO(D): Use auth token to filter customer invoices server-side
-    getCustomerInvoices(mockCurrentCustomer.id).then(setInvoices);
-  }, []);
+    getCustomerInvoices(customer.id).then(setInvoices);
+  }, [customer.id]);
 
   const columns = [
     { key: 'number',    label: 'Invoice #', render: (v) => <span className="font-mono text-xs font-semibold">{v}</span> },

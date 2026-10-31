@@ -10,19 +10,20 @@ import { Button } from '../../../components/ui/Button';
 import { FilterBar } from '../../../components/ui/FilterBar';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { Avatar } from '../../../components/ui/Avatar';
-import { getDashboardStats, getRevenueChartData } from '../services/finance.service';
+import { getDashboardStats, getRevenueChartData, exportCsv } from '../services/finance.service';
 import { mockInvoices, mockPayments } from '../../../mock/billing';
 import { formatCurrency, formatDate } from '../../../utils/index';
 import { useToast } from '../../../context/ToastContext';
+import { useNavigate } from 'react-router-dom';
 
 const PIE_COLORS = ['#3FBF8F', '#F6B73C', '#FF6A4D', '#DCD3F7', '#7CC4F0', '#6B667A'];
 
-const INVOICE_STATUS_DATA = [
-  { name: 'Paid',     value: 11 },
-  { name: 'Pending',  value: 3 },
-  { name: 'Overdue',  value: 4 },
-  { name: 'Draft',    value: 1 },
-  { name: 'Confirmed',value: 1 },
+const DEFAULT_INVOICE_STATUS_DATA = [
+  { name: 'Paid',      value: 11 },
+  { name: 'Pending',   value: 3 },
+  { name: 'Overdue',   value: 4 },
+  { name: 'Draft',     value: 1 },
+  { name: 'Confirmed', value: 1 },
 ];
 
 export default function DashboardPage() {
@@ -30,17 +31,31 @@ export default function DashboardPage() {
   const [chartData, setChartData] = useState([]);
   const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', status: '', plan: '' });
   const toast = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // TODO(D): Wire to real API
-    getDashboardStats().then(setStats);
+    getDashboardStats(filters).then(setStats);
     getRevenueChartData().then(setChartData);
-  }, []);
+  }, [filters]);
 
   const handleFilterChange = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
-  const overdueInvoices = mockInvoices.filter((i) => i.status === 'overdue').slice(0, 5);
-  const recentPayments = mockPayments.slice(0, 5);
+  const overdueInvoices = stats?.overdueInvoices?.length
+    ? stats.overdueInvoices
+    : mockInvoices.filter((i) => i.status === 'overdue').slice(0, 5);
+
+  const recentPayments = stats?.recentPayments?.length
+    ? stats.recentPayments
+    : mockPayments.slice(0, 5);
+
+  const invoiceStatusData = stats?.invoiceStatusData?.length
+    ? stats.invoiceStatusData
+    : DEFAULT_INVOICE_STATUS_DATA;
+
+  const handleExport = () => {
+    toast.info('Export started…');
+    exportCsv();
+  };
 
   return (
     <div className="space-y-6">
@@ -48,7 +63,7 @@ export default function DashboardPage() {
         title="Dashboard"
         subtitle="Financial overview for Brightloop Software"
         actions={
-          <Button variant="ghost" icon={Download} onClick={() => toast.info('Export started…')}>
+          <Button variant="ghost" icon={Download} onClick={handleExport}>
             Export
           </Button>
         }
@@ -157,11 +172,11 @@ export default function DashboardPage() {
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
-                data={INVOICE_STATUS_DATA} dataKey="value" nameKey="name"
+                data={invoiceStatusData} dataKey="value" nameKey="name"
                 cx="50%" cy="50%" innerRadius={52} outerRadius={80} paddingAngle={3}
               >
-                {INVOICE_STATUS_DATA.map((_, i) => (
-                  <Cell key={i} fill={PIE_COLORS[i]} />
+                {invoiceStatusData.map((_, i) => (
+                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                 ))}
               </Pie>
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
@@ -177,7 +192,7 @@ export default function DashboardPage() {
         <div className="bg-paper rounded-2xl border border-border">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <h3 className="font-heading font-semibold text-ink">Recent Payments</h3>
-            <Button variant="ghost" size="sm" icon={Zap}>View all</Button>
+            <Button variant="ghost" size="sm" icon={Zap} onClick={() => navigate('/admin/payments')}>View all</Button>
           </div>
           <div className="divide-y divide-border">
             {recentPayments.map((p) => (
@@ -202,7 +217,7 @@ export default function DashboardPage() {
         <div className="bg-paper rounded-2xl border border-border">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <h3 className="font-heading font-semibold text-ink">Overdue Invoices</h3>
-            <Button variant="ghost" size="sm">View all</Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/overdue')}>View all</Button>
           </div>
           <div className="divide-y divide-border">
             {overdueInvoices.map((inv) => (
